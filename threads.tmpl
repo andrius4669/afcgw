@@ -1,0 +1,24 @@
+{{define `bpost`}}
+<div>
+Name[{{.Name}}] Subject[{{.Subject}}] Email[{{.Email}}] Date[{{.Date}}] File[{{.File}}] Message[{{.Message}}]
+</div>
+{{end}}
+{{$tname := .Name}}
+<html>
+	<head>
+		<title>/{{.Name}}/ - {{.Desc}}</title>
+	</head>
+	<body>
+	<b>{{.Info}}</b>
+	<br />
+	<b>Threads:</b>
+{{range $index, $element := .Threads}}
+	<br />
+	<a href="/{{$tname}}/thread/{{$element.Id}}">#{{$element.Id}}</a>
+	{{range $ti, $te := $element.Posts}}
+		<br />
+		{{template `bpost` $te}}
+	{{end}}
+{{end}}
+	</body>
+</body>

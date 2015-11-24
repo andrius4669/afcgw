@@ -1,0 +1,12 @@
+<html>
+	<head>
+		<title>Boards</title>
+	</head>
+	<body>
+	Boards:
+{{range $index, $element := .Boards}}
+	<br />
+	<a href="/{{$element.Name}}/">{{$element.Desc}}</a>
+{{end}}
+	</body>
+</html>
