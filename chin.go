@@ -122,7 +122,16 @@ func (HandlerType) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if tfunc == "/new" {
 			postNewThread(w, r, board)
 		} else {
-			n, err := strconv.ParseUint(tfunc[1:], 10, 64)
+			tfunc = tfunc[1:]
+			var ttfunc string
+			if i := strings.IndexByte(tfunc, '/'); i != -1 {
+				tfunc, ttfunc = tfunc[:i], tfunc[i:]
+			}
+			if ttfunc != "/post" {
+				http.NotFound(w, r)
+				return
+			}
+			n, err := strconv.ParseUint(tfunc, 10, 64)
 			if err != nil {
 				http.NotFound(w, r)
 				return
@@ -130,7 +139,7 @@ func (HandlerType) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			postNewPost(w, r, board, n)
 		}
 	} else {
-
+		http.Error(w, "501 not implemented", 501)
 	}
 }
 

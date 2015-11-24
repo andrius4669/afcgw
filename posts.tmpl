@@ -14,5 +14,18 @@ Name[{{.Name}}] Subject[{{.Subject}}] Email[{{.Email}}] Date[{{.Date}}] File[{{.
 		{{range $index, $element := .Replies}}
 			{{template `bpost` $element}}
 		{{end}}
+		<br />
+		<form action="/{{$bname}}/thread/{{.Id}}/post" method="post" enctype="multipart/form-data">
+			<div>
+			Name: <input type="text" name="name" />
+			Subject: <input type="text" name="subject" />
+			Email: <input type="text" name="email" />
+			</div>
+			<div>
+			Message: <input type="text" name="message" />
+			</div>
+			<input type="file" name="file" />
+			<input type="submit" value="Post" />
+		</form>
 	</body>
 </html>
