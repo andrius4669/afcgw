@@ -69,6 +69,10 @@ func (HandlerType) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					http.Redirect(w, r, "/" + board + "/", http.StatusFound)
 					return
 				}
+				subinfo = subinfo[1:]
+				if i := strings.IndexByte(subinfo, '/'); i != -1 {
+					subinfo = subinfo[:i] // ignore / and anything after it
+				}
 				n, err := strconv.ParseUint(subinfo[1:], 10, 64)
 				if err != nil {
 					http.NotFound(w, r)
