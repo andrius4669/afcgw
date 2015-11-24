@@ -4,39 +4,25 @@ import (
 	"fmt"
 	"net/http"
 	"database/sql"
-	_ "github.com/lib/pq"
 )
 
-func openSQL() (*sql.DB) {
-	dbinfo := fmt.Sprintf("user=%s password=%s dbname=%s sslmode=disable", "postgres", "postgres", "chin")
-	db, err := sql.Open("postgres", dbinfo)
-	panicErr(err)
-	return db
+type boardInfo struct {
+	Name string
+	Desc string
+	Info string
 }
 
-// TODO
+type frontData struct {
+	Boards []boardInfo
+}
+
 func renderFront(w http.ResponseWriter, r *http.Request) {
 	db := openSQL()
-	rows, err := db.Query("SELECT name, description, info FROM boards")
-	panicErr(err)
-	//fmt.Fprint(w, "<html><head><title>HUEHUEHUE</title></head><body><b>Boards</b><br />")
 
-	type boardInfo struct {
-		Name string
-		Desc string
-		Info string
-	}
-	var frontData struct {
-		Boards []boardInfo
-	}
+	var f frontData
+	inputBoards(db, &f)
 
-	for rows.Next() {
-		var b boardInfo
-		rows.Scan(&b.Name, &b.Desc, &b.Info)
-		frontData.Boards = append(frontData.Boards, b)
-	}
-
-	execTemplate(w, "boards", frontData)
+	execTemplate(w, "boards", &f)
 }
 
 type postInfo struct {
