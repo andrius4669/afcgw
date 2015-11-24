@@ -1,0 +1,18 @@
+{{define `bpost`}}
+<div>
+Name[{{.Name}}] Subject[{{.Subject}}] Email[{{.Email}}] Date[{{.Date}}] File[{{.File}}] Message[{{.Message}}]
+</div>
+{{end}}
+{{$bname := .Name}}
+<html>
+	<head>
+		<title>/{{$bname}}/ #{{.Id}}</title>
+	</head>
+	<body>
+		<b>Posts in /{{$bname}}/ #{{.Id}}</b>
+		{{template `bpost` .Op}}
+		{{range $index, $element := .Replies}}
+			{{template `bpost` $element}}
+		{{end}}
+	</body>
+</html>

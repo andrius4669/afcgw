@@ -11,7 +11,15 @@ var loadedTemplates *template.Template
 var templateNames []struct{n, f string} = []struct{n, f string}{
 	{ "boards", "boards.tmpl" },
 	{ "threads", "threads.tmpl" },
-//	{ "posts", "posts.tmpl" },
+	{ "posts", "posts.tmpl" },
+}
+
+func parseFromFile(t *template.Template, fname string) (*template.Template, error) {
+	buf, err := ioutil.ReadFile(fname)
+	if err != nil {
+		return nil, err
+	}
+	return t.Parse(string(buf))
 }
 
 func addTemplate(t *template.Template, tname, fname string) (*template.Template, error) {
@@ -33,7 +41,11 @@ func addTemplate(t *template.Template, tname, fname string) (*template.Template,
 func loadTemplates() {
 	t := template.New("main")
 	for i := range templateNames {
-		template.Must(addTemplate(t, templateNames[i].n, templateNames[i].f))
+		if templateNames[i].n == "main" {
+			template.Must(parseFromFile(t, templateNames[i].f))
+		} else {
+			template.Must(addTemplate(t, templateNames[i].n, templateNames[i].f))
+		}
 	}
 	loadedTemplates = t
 }
