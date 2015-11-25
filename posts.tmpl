@@ -1,20 +1,20 @@
 {{define `bpost`}}
 <div id="{{.Id}}">
-Name[{{.Name}}] Subject[{{.Subject}}] Email[{{.Email}}] Date[{{.Date}}]{{if (.HasFile)}} File[<a href="/{{.Board}}/src/{{.File}}">{{.File}}</a>]{{end}} Message[{{.Message}}]
+Name[{{.Name}}] Subject[{{.Subject}}] Email[{{.Email}}] Date[{{.Date}}]{{if (.HasFile)}} File[<a href="/{{.Board}}/src/{{.File}}">{{.File}}</a>]{{end}} Message[{{.FMessage}}]
 </div>
 {{end}}
 <html>
 	<head>
-		<title>/{{.Name}}/ #{{.Id}}</title>
+		<title>/{{.Board}}/ #{{.Id}}</title>
 	</head>
 	<body>
-		<b>Posts in /{{.Name}}/ #{{.Id}}</b>
+		<b>Posts in /{{.Board}}/ #{{.Id}}</b>
 		{{template `bpost` .Op}}
 		{{range $index, $element := .Replies}}
 			{{template `bpost` $element}}
 		{{end}}
 		<br />
-	<form action="/{{.Name}}/thread/{{.Id}}/post" method="post" enctype="multipart/form-data">
+	<form action="/{{.Board}}/thread/{{.Id}}/post" method="post" enctype="multipart/form-data">
 		<table>
 			<tr>
 				<th>Name</th>

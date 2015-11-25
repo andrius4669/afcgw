@@ -63,7 +63,7 @@ func (HandlerType) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		switch restype {
 			case "":
-				renderBoard(w, r, board)
+				renderBoard(w, r, board, false)
 			case "thread":
 				if subinfo == "" || subinfo == "/" {
 					http.Redirect(w, r, "/" + board + "/", http.StatusFound)
@@ -78,7 +78,7 @@ func (HandlerType) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					http.NotFound(w, r)
 					return
 				}
-				renderThread(w, r, board, n)
+				renderThread(w, r, board, n, false)
 			case "src":
 				if subinfo == "" || subinfo == "/" {
 					http.Redirect(w, r, "/" + board + "/", http.StatusFound)
@@ -93,6 +93,25 @@ func (HandlerType) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					return
 				}
 				serveFile(w, r, board + "/src/" + subinfo)
+			case "mod":
+				if subinfo == "" {
+					http.Redirect(w, r, "/" + board + "/mod/", http.StatusFound)
+					return
+				}
+				if subinfo == "/" {
+					renderBoard(w, r, board, true)
+					return
+				}
+				subinfo = subinfo[1:]
+				if i := strings.IndexByte(subinfo, '/'); i != -1 {
+					subinfo = subinfo[:i] // ignore / and anything after it
+				}
+				n, err := strconv.ParseUint(subinfo, 10, 64)
+				if err != nil {
+					http.NotFound(w, r)
+					return
+				}
+				renderThread(w, r, board, n, true)
 			default:
 				http.NotFound(w, r)
 		}

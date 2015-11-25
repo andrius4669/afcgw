@@ -14,6 +14,7 @@ var templateNames []struct{n, f string} = []struct{n, f string}{
 	{ "posts", "posts.tmpl" },
 	{ "posted", "posted.tmpl" },
 	{ "newthread", "newthread.tmpl" },
+	{ "deleted", "deleted.tmpl" },
 }
 
 func parseFromFile(t *template.Template, fname string) (*template.Template, error) {

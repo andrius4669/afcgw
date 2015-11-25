@@ -1,0 +1,16 @@
+<html>
+	<head>
+		<title>Deleted</title>
+	</head>
+	<body>
+		{{if .HasThread}}
+			{{if .IsThread}}
+				removed thread #{{.Thread}}. go <a href="/{{.Board}}/mod/">back</a>
+			{{else}}
+				removed post #{{.Post}}. go <a href="/{{.Board}}/mod/{{.Thread}}">back</a>
+			{{end}}
+		{{else}}
+			already removed. go <a href="/{{.Board}}/mod/">back</a>
+		{{end}}
+	</body>
+</html>
