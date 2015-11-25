@@ -38,6 +38,7 @@ func inputThreads(db *sql.DB, b *threadsInfo, board string) bool {
 	panicErr(err)
 	for rows.Next() {
 		var t threadInfo
+		t.Board = board
 		rows.Scan(&t.Id)
 		b.Threads = append(b.Threads, t)
 	}
@@ -45,6 +46,8 @@ func inputThreads(db *sql.DB, b *threadsInfo, board string) bool {
 	for i := range b.Threads {
 		{
 			var op postInfo
+			op.Board = board
+			op.Thread = b.Threads[i].Id
 			// expliclty fetch OP
 			err = db.QueryRow(fmt.Sprintf("SELECT id, name, subject, email, date, message, file FROM %s.posts WHERE id=$1", board), b.Threads[i].Id).
 		                     Scan(&op.Id, &op.Name, &op.Subject, &op.Email, &op.Date, &op.Message, &op.File)
@@ -59,6 +62,8 @@ func inputThreads(db *sql.DB, b *threadsInfo, board string) bool {
 		panicErr(err)
 		for rows.Next() {
 			var p postInfo
+			p.Board = board
+			p.Thread = b.Threads[i].Id
 			rows.Scan(&p.Id, &p.Name, &p.Subject, &p.Email, &p.Date, &p.Message, &p.File)
 			if p.Id == b.Threads[i].Id {
 				continue // OP already included
@@ -83,6 +88,8 @@ func inputPosts(db *sql.DB, t *postsInfo, board string, thread uint64) bool {
 	}
 	panicErr(err)
 
+	t.Op.Board = board
+	t.Op.Thread = thread
 	err = db.QueryRow(fmt.Sprintf("SELECT id, name, subject, email, date, message, file FROM %s.posts WHERE id=$1", board), thread).
 	                 Scan(&t.Op.Id, &t.Op.Name, &t.Op.Subject, &t.Op.Email, &t.Op.Date, &t.Op.Message, &t.Op.File);
 	if err == sql.ErrNoRows {
@@ -94,6 +101,8 @@ func inputPosts(db *sql.DB, t *postsInfo, board string, thread uint64) bool {
 	panicErr(err)
 	for rows.Next() {
 		var p postInfo
+		p.Board = board
+		p.Thread = thread
 		rows.Scan(&p.Id, &p.Name, &p.Subject, &p.Email, &p.Date, &p.Message, &p.File)
 		if p.Id == thread {
 			continue // OP already included

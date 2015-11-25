@@ -67,6 +67,7 @@ func postNewPost(w http.ResponseWriter, r *http.Request, board string, thread ui
 	var p wPostInfo
 
 	db := openSQL()
+	defer db.Close()
 
 	var bname string
 	err := db.QueryRow("SELECT name FROM boards WHERE name=$1", board).Scan(&bname)

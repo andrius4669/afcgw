@@ -1,4 +1,3 @@
-{{$tname := .Name}}
 <html>
 	<head>
 		<title>/{{.Name}}/ - {{.Desc}}</title>
@@ -9,7 +8,7 @@
 	<b>Threads:</b>
 {{range $index, $element := .Threads}}
 	<br />
-	<a href="/{{$tname}}/thread/{{$element.Id}}">#{{$element.Id}}</a>
+	<a href="/{{.Board}}/thread/{{$element.Id}}">#{{$element.Id}}</a>
 	{{template `bpost` $element.Op}}
 	{{range $ti, $te := $element.Replies}}
 		<br />
