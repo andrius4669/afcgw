@@ -143,6 +143,10 @@ func (HandlerType) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func init() {
+	initMime()
+}
+
 func main() {
 	loadTemplates()
 	http.ListenAndServe(":1337", &HandlerType{})

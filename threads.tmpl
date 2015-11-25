@@ -5,6 +5,33 @@
 	<body>
 	<b>{{.Info}}</b>
 	<br />
+	<form action="/{{.Name}}/thread/new" method="post" enctype="multipart/form-data">
+		<table>
+			<tr>
+				<th>Name</th>
+				<td><input type="text" name="name" placeholder="Name" /></td>
+			</tr>
+			<tr>
+				<th>Subject</th>
+				<td><input type="text" name="subject" placeholder="Subject" /></td>
+			</tr>
+			<tr>
+				<th>Email</th>
+				<td><input type="text" name="email" placeholder="Email" /></td>
+			</tr>
+			<tr>
+				<th>Message</th>
+				<td><textarea name="message" rows="5" cols="40" placeholder="Message"></textarea></td>
+			</tr>
+			<tr>
+				<th>File</th>
+				<td><input type="file" name="file" /></td>
+			</tr>
+			<tr>
+				<td><input type="submit" value="New thread" /></td>
+			</tr>
+		</table>
+	</form>
 	<b>Threads:</b>
 {{range $index, $element := .Threads}}
 	<br />
