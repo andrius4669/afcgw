@@ -1,6 +1,30 @@
 {{define `bpost`}}
-<div id="{{.Id}}">
-Name[{{.Name}}] Subject[{{.Subject}}] Email[{{.Email}}] Date[{{.Date}}]{{if (.HasFile)}} File[<a href="/{{.Board}}/src/{{.File}}">{{.File}}</a>]{{end}} Message[{{.FMessage}}]
+<div id="{{.Id}}" style="background-color:yellow">
+<p>
+{{if .HasSubject}}<span style="color:blue">{{.FSubject}}</span> {{end}}
+{{if .HasEmail}}<a href="mailto:{{.FEmail}}">{{end}}
+{{if .HasName}}<span style="color:red">{{.FName}}</span>{{else}}<span style="color:green">{{.FName}}</span>{{end}}
+{{if .HasEmail}}</a>{{end}}
+<time datetime="{{.FDate}}">{{.StrDate}}</time>
+<a href="/{{.Board}}/thread/{{.Thread}}#{{.Id}}">No.</a>
+{{.Id}}
+</p>
+{{if .HasFile}}
+<div>
+<p>
+<a href="{{.FullFile}}">{{.File}}</a>{{if .HasOriginal}} Original: <a href="{{.FullOriginal}}">{{.StrOriginal}}</a>{{end}}
+</p>
+<!-- include small img maybe -->
+<a href="{{.FullFile}}">
+	image
+</a>
+</div>
+{{end}}
+{{if .HasMessage}}
+<div>
+{{.FMessage}}
+</div>
+{{end}}
 </div>
 {{end}}
 <html>
@@ -14,32 +38,32 @@ Name[{{.Name}}] Subject[{{.Subject}}] Email[{{.Email}}] Date[{{.Date}}]{{if (.Ha
 			{{template `bpost` $element}}
 		{{end}}
 		<br />
-	<form action="/{{.Board}}/thread/{{.Id}}/post" method="post" enctype="multipart/form-data">
-		<table>
-			<tr>
-				<th>Name</th>
-				<td><input type="text" name="name" placeholder="Name" /></td>
-			</tr>
-			<tr>
-				<th>Subject</th>
-				<td><input type="text" name="subject" placeholder="Subject" /></td>
-			</tr>
-			<tr>
-				<th>Email</th>
-				<td><input type="text" name="email" placeholder="Email" /></td>
-			</tr>
-			<tr>
-				<th>Message</th>
-				<td><textarea name="message" rows="5" cols="40" placeholder="Message"></textarea></td>
-			</tr>
-			<tr>
-				<th>File</th>
-				<td><input type="file" name="file" /></td>
-			</tr>
-			<tr>
-				<td><input type="submit" value="Post" /></td>
-			</tr>
-		</table>
-	</form>
+		<form action="/{{.Board}}/thread/{{.Id}}/post" method="post" enctype="multipart/form-data">
+			<table>
+				<tr>
+					<th>Name</th>
+					<td><input type="text" name="name" placeholder="Name" /></td>
+				</tr>
+				<tr>
+					<th>Subject</th>
+					<td><input type="text" name="subject" placeholder="Subject" /></td>
+				</tr>
+				<tr>
+					<th>Email</th>
+					<td><input type="text" name="email" placeholder="Email" /></td>
+				</tr>
+				<tr>
+					<th>Message</th>
+					<td><textarea name="message" rows="5" cols="30" placeholder="Message"></textarea></td>
+				</tr>
+				<tr>
+					<th>File</th>
+					<td><input type="file" name="file" /></td>
+				</tr>
+				<tr>
+					<td><input type="submit" value="Post" /></td>
+				</tr>
+			</table>
+		</form>
 	</body>
 </html>

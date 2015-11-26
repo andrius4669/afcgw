@@ -21,7 +21,7 @@
 			</tr>
 			<tr>
 				<th>Message</th>
-				<td><textarea name="message" rows="5" cols="40" placeholder="Message"></textarea></td>
+				<td><textarea name="message" rows="5" cols="30" placeholder="Message"></textarea></td>
 			</tr>
 			<tr>
 				<th>File</th>
@@ -38,7 +38,6 @@
 	<a href="/{{.Board}}/thread/{{$element.Id}}">#{{$element.Id}}</a>
 	{{template `bpost` $element.Op}}
 	{{range $ti, $te := $element.Replies}}
-		<br />
 		{{template `bpost` $te}}
 	{{end}}
 {{end}}

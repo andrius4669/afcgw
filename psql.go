@@ -34,7 +34,7 @@ func inputThreads(db *sql.DB, b *fullBoardInfo, board string) bool {
 	panicErr(err)
 
 	// TODO: ordering & limiting
-	rows, err := db.Query(fmt.Sprintf("SELECT id FROM %s.threads", board))
+	rows, err := db.Query(fmt.Sprintf("SELECT id FROM %s.threads ORDER BY bump DESC", board))
 	panicErr(err)
 	for rows.Next() {
 		var t fullThreadInfo

@@ -1,9 +1,12 @@
 package main
 
 import (
-//	"fmt"
+	"fmt"
 	"net/http"
 	"bytes"
+	"text/template"
+	"net/url"
+	"time"
 )
 
 // basic info about board
@@ -46,7 +49,7 @@ type postInfo struct {
 	Name     string
 	Subject  string
 	Email    string
-	Date     uint64
+	Date     int64
 	Message  string
 	File     string
 	Original string
@@ -64,12 +67,84 @@ func (p *postInfo) HasFile() bool {
 	return p.File != ""
 }
 
+func (p *postInfo) FullFile() string {
+	if p.HasFile() {
+		return "/" + p.Board() + "/src/" + p.File
+	}
+	return ""
+}
+
+func (p *postInfo) HasOriginal() bool {
+	return p.Original != ""
+}
+
+func (p *postInfo) StrOriginal() string {
+	return template.HTMLEscapeString(p.Original)
+}
+
+func (p *postInfo) FOriginal() string {
+	return url.QueryEscape(p.Original)
+}
+
+func (p *postInfo) FullOriginal() string {
+	if p.HasOriginal() {
+		return p.FullFile() + "/" + p.FOriginal()
+	}
+	return p.FullFile()
+}
+
+func (p *postInfo) HasName() bool {
+	return p.Name != ""
+}
+
+func (p *postInfo) FName() string {
+	if p.HasName() {
+		return template.HTMLEscapeString(p.Name)
+	}
+	return "Anonymous"
+}
+
+func (p *postInfo) HasSubject() bool {
+	return p.Subject != ""
+}
+
+func (p *postInfo) FSubject() string {
+	if p.HasSubject() {
+		return template.HTMLEscapeString(p.Subject)
+	}
+	return "None"
+}
+
+func (p *postInfo) HasEmail() bool {
+	return p.Email != ""
+}
+
+func (p *postInfo) FEmail() string {
+	return url.QueryEscape(p.Email)
+}
+
 func (p *postInfo) setMod(mod bool) {
 	p.parent.setMod(mod)
 }
 
 func (p *postInfo) IsMod() bool {
 	return p.parent.IsMod()
+}
+
+// prints date in format browser understands
+func (p *postInfo) FDate() string {
+	t := time.Unix(p.Date, 0)
+	return fmt.Sprintf("%d-%02d-%02dT%02d:%02d:%02dZ", t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second()) // Z denotes UTC
+}
+
+// format user understands better
+func (p *postInfo) StrDate() string {
+	t := time.Unix(p.Date, 0)
+	return fmt.Sprintf("%d-%02d-%02d %02d:%02d:%02d", t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second())
+}
+
+func (p *postInfo) HasMessage() bool {
+	return p.Message != ""
 }
 
 // escapes and formats message

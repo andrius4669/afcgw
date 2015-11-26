@@ -34,7 +34,7 @@ func uniqueUnixTime() int64 {
 	lastTimeMutex.Lock()
 	defer lastTimeMutex.Unlock()
 
-	unixnow := time.Now().Unix()
+	unixnow := time.Now().UTC().Unix()
 	if unixnow > lastTime {
 		lastTime = unixnow
 		return unixnow
@@ -42,6 +42,10 @@ func uniqueUnixTime() int64 {
 		lastTime ++
 		return lastTime
 	}
+}
+
+func utcUnixTime() int64 {
+	return time.Now().UTC().Unix()
 }
 
 func postNewBoard(w http.ResponseWriter, r *http.Request) {
@@ -179,7 +183,7 @@ func postNewThread(w http.ResponseWriter, r *http.Request, board string) {
 		return
 	}
 
-	nowtime := time.Now().Unix()
+	nowtime := utcUnixTime()
 
 	var lastInsertId uint64
 	err = db.QueryRow(fmt.Sprintf("INSERT INTO %s.posts (name, subject, email, date, message, file, original) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id;", board),
@@ -224,11 +228,30 @@ func postNewPost(w http.ResponseWriter, r *http.Request, board string, thread ui
 
 	var lastInsertId uint64
 	err = db.QueryRow(fmt.Sprintf("INSERT INTO %s.posts (thread, name, subject, email, date, message, file, original) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id;", board),
-                      thread, p.Name, p.Subject, p.Email, time.Now().Unix(), p.Message, p.File, p.Original).Scan(&lastInsertId)
+                      thread, p.Name, p.Subject, p.Email, utcUnixTime(), p.Message, p.File, p.Original).Scan(&lastInsertId)
 	panicErr(err)
 
 	var pr = postResult{Board: board, Thread: thread, Post: lastInsertId}
 	execTemplate(w, "posted", pr)
+}
+
+func pruneThread(db *sql.DB, board string, thread uint64) {
+	stmt, err := db.Prepare(fmt.Sprintf("DELETE FROM %s.threads WHERE id=$1", board))
+	panicErr(err)
+
+	_, err = stmt.Exec(thread) // result isn't very meaningful for us, but we check err regardless
+	panicErr(err)
+
+	rows, err := db.Query(fmt.Sprintf("DELETE FROM %s.posts WHERE thread=$1 RETURNING file", board), thread)
+	panicErr(err)
+	for rows.Next() {
+		var fname sql.NullString
+		err = rows.Scan(&fname)
+		panicErr(err)
+		if fname.Valid && fname.String != "" {
+			delFile(board, fname.String)
+		}
+	}
 }
 
 func removePost(w http.ResponseWriter, r *http.Request, pr *postResult, board string, post uint64) bool {
@@ -246,40 +269,24 @@ func removePost(w http.ResponseWriter, r *http.Request, pr *postResult, board st
 	pr.Board = board
 	pr.Post = post
 
-	var thread uint64
-	var fname  string
+	var thread sql.NullInt64
+	var fname  sql.NullString
 	err = db.QueryRow(fmt.Sprintf("DELETE FROM %s.posts WHERE id=$1 RETURNING thread, file", board), post).Scan(&thread, &fname)
 	if err == sql.ErrNoRows {
 		return true // already deleted
 	}
 	panicErr(err)
 
-	if fname != "" {
-		delFile(board, fname)
+	if fname.Valid && fname.String != "" {
+		delFile(board, fname.String)
 	}
 
 	// if it was OP, prune whole thread
-	if thread == post || thread == 0 {
+	if !thread.Valid || uint64(thread.Int64) == post {
 		pr.Thread = post
-
-		stmt, err := db.Prepare(fmt.Sprintf("DELETE FROM %s.threads WHERE id=$1", board))
-		panicErr(err)
-
-		_, err = stmt.Exec(post) // result isn't very meaningful for us, we check err regardless
-		panicErr(err)
-
-		rows, err := db.Query(fmt.Sprintf("DELETE FROM %s.posts WHERE thread=$1 RETURNING file", board), thread)
-		panicErr(err)
-
-		for rows.Next() {
-			err = rows.Scan(&fname)
-			panicErr(err)
-			if fname != "" {
-				delFile(board, fname)
-			}
-		}
+		pruneThread(db, board, post)
 	} else {
-		pr.Thread = thread
+		pr.Thread = uint64(thread.Int64)
 	}
 
 	return true
