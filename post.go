@@ -20,6 +20,7 @@ var allowedTypes = map[string]bool{
 	"image/jpeg":     true,
 	"image/png":      true,
 	"image/bmp":      true,
+	"audio/mpeg":     true,
 }
 
 // add our own mime stuff since golang's parser erroreusly overwrites image/bmp with image/x-ms-bmp
