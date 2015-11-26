@@ -184,6 +184,8 @@ func (p *postInfo) FMessage() string {
 		case '\n':
 			esc = htmlBr
 			inc = 1
+		case '\r':
+			inc = 1
 		default:
 			src++
 			continue
