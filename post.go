@@ -13,19 +13,27 @@ import (
 	"strconv"
 )
 
-const maxFileSize = 10<<20 // 10 megs
+const (
+	maxImageSize =  8<<20
+	maxMusicSize = 50<<20 // :^)
+)
 
-var allowedTypes = map[string]bool{
-	"image/gif":      true,
-	"image/jpeg":     true,
-	"image/png":      true,
-	"image/bmp":      true,
-	"audio/mpeg":     true,
+// nice place to also include file sizes
+var allowedTypes = map[string]int64{
+	"image/gif":      maxImageSize,
+	"image/jpeg":     maxImageSize,
+	"image/png":      maxImageSize,
+	"image/bmp":      maxImageSize,
+	"audio/mpeg":     maxMusicSize,
+	"audio/ogg":      maxMusicSize,
+	"audio/flac":     maxMusicSize,
 }
 
 // add our own mime stuff since golang's parser erroreusly overwrites image/bmp with image/x-ms-bmp
 func initMime() {
 	mime.AddExtensionType(".bmp", "image/bmp")
+	mime.AddExtensionType(".ogg", "audio/ogg")
+	mime.AddExtensionType(".flac", "audio/flac")
 }
 
 // timestamps returned by this are guaranteed to be unique
@@ -126,28 +134,31 @@ func acceptPost(w http.ResponseWriter, r *http.Request, p *wPostInfo, board stri
 			http.Error(w, fmt.Sprintf("500 internal server error: %s", err), 500)
 			return false
 		}
-
-		if size > maxFileSize {
-			http.Error(w, "file too big", 403) // 403 Forbidden
-			return false
-		}
-
 		_, err = f.Seek(0, os.SEEK_SET)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("500 internal server error: %s", err), 500)
 			return false
 		}
 
-		mt := mime.TypeByExtension(filepath.Ext(h.Filename))
+		ext := filepath.Ext(h.Filename)
+		mt := mime.TypeByExtension(ext)
 		if mt != "" {
 			mt, _, _ = mime.ParseMediaType(mt)
 		}
-		if mt == "" || !allowedTypes[mt] {
+		if mt == "" {
 			http.Error(w, "file type not allowed", 403) // 403 Forbidden
 			return false
 		}
-		ext, _ := mime.ExtensionsByType(mt) // shouldn't fail
-		fname := strconv.FormatInt(uniqueUnixTime(), 10) + ext[0]
+		maxSize, ok := allowedTypes[mt]
+		if !ok {
+			http.Error(w, "file type not allowed", 403) // 403 Forbidden
+			return false
+		}
+		if size > maxSize {
+			http.Error(w, "file too big", 403) // 403 Forbidden
+			return false
+		}
+		fname := strconv.FormatInt(uniqueUnixTime(), 10) + ext
 		fullname := "files/" + board + "/src/" + fname
 		tmpname := "files/" + board + "/src/tmp_" + fname
 		nf, err := os.OpenFile(tmpname, os.O_WRONLY|os.O_CREATE, 0666)
