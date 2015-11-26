@@ -1,6 +1,6 @@
 {{define `bpost`}}
 <div id="{{.Id}}" style="background-color:#88DDAA">
-<p style="margin-bottom:0">
+<p style="margin-bottom:0; margin-top: 0">
 {{if .HasSubject}}<span style="color:blue">{{.FSubject}}</span> {{end}}
 {{if .HasEmail}}<a href="mailto:{{.FEmail}}">{{end}}
 {{if .HasName}}<span style="color:red">{{.FName}}</span>{{else}}<span style="color:green">{{.FName}}</span>{{end}}
@@ -11,7 +11,7 @@
 </p>
 {{if .HasFile}}
 <div>
-<p style="margin-bottom:0"><a href="{{.FullFile}}">{{.File}}</a>{{if .HasOriginal}} Original: <a href="{{.FullOriginal}}">{{.StrOriginal}}</a>{{end}}</p>
+<p style="margin-bottom:0; margin-top: 0"><a href="{{.FullFile}}">{{.File}}</a>{{if .HasOriginal}} Original: <a href="{{.FullOriginal}}">{{.StrOriginal}}</a>{{end}}</p>
 {{/*
 <!-- include small img maybe -->
 <a href="{{.FullFile}}">
