@@ -82,13 +82,10 @@ func (p *postInfo) StrOriginal() string {
 	return template.HTMLEscapeString(p.Original)
 }
 
-func (p *postInfo) FOriginal() string {
-	return url.QueryEscape(p.Original)
-}
-
 func (p *postInfo) FullOriginal() string {
 	if p.HasOriginal() {
-		return p.FullFile() + "/" + p.FOriginal()
+		var u = url.URL{Path: p.FullFile() + "/" + p.Original}
+		return u.EscapedPath()
 	}
 	return p.FullFile()
 }
