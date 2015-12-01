@@ -158,7 +158,7 @@ var (
 // check existence of cross-linking, ex: >>>/b/ >>>/pol/13548
 func checkCrossPattern(b []byte, src int, end *int, board *string, post *uint64) bool {
 	// shortest crosslink: >>>/a/ - 6 chars
-	if src + 6 < len(b) {
+	if src + 6 >= len(b) {
 		return false
 	}
 	if b[src+1] != '>' || b[src+2] != '>' || b[src+3] != '/' {
