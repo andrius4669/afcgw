@@ -213,7 +213,7 @@ func (p *postInfo) FMessage() string {
 		tagGreentext = iota
 	)
 	var tagMap = map[uint]struct{ start, end []byte } {
-		tagGreentext: { []byte("<span class=\"greentext\">"), []byte("</span>") },
+		tagGreentext: { []byte("<span style=\"color:green\">"), []byte("</span>") },
 	}
 	var tagList []uint
 
@@ -278,6 +278,9 @@ func (p *postInfo) FMessage() string {
 		last = src
 	}
 	w.Write(b[last:])
+	for i := int(len(tagList)-1); i >= 0; i-- {
+		w.Write(tagMap[tagList[i]].end)
+	}
 	return w.String()
 }
 
