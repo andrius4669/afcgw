@@ -44,7 +44,7 @@ func uniqueTimestamp() int64 {
 	defer lastTimeMutex.Unlock()
 
 	t := time.Now().UTC()
-	unixnow := (t.Unix() * 1000) + (t.UnixNano() / 1000000)
+	unixnow := (t.Unix() * 1000) + ((t.UnixNano() / 1000000) % 1000)
 	if unixnow > lastTime {
 		lastTime = unixnow
 		return unixnow
