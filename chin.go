@@ -179,5 +179,9 @@ func init() {
 
 func main() {
 	loadTemplates()
+
+	initImageMagick()
+	defer killImageMagick()
+
 	http.ListenAndServe(":1337", &HandlerType{})
 }

@@ -11,6 +11,7 @@ import (
 	"time"
 	"io"
 	"strconv"
+	"github.com/gographics/imagick/imagick"
 )
 
 const (
@@ -34,6 +35,14 @@ func initMime() {
 	mime.AddExtensionType(".bmp", "image/bmp")
 	mime.AddExtensionType(".ogg", "audio/ogg")
 	mime.AddExtensionType(".flac", "audio/flac")
+}
+
+func initImageMagick() {
+	imagick.Initialize()
+}
+
+func killImageMagick() {
+	imagick.Terminate()
 }
 
 // timestamps returned by this are guaranteed to be unique
@@ -170,6 +179,8 @@ func acceptPost(w http.ResponseWriter, r *http.Request, p *wPostInfo, board stri
 		io.Copy(nf, f)
 		nf.Close()
 		os.Rename(tmpname, fullname) // atomic :^)
+
+		/* TODO: make thumb */
 
 		p.File = fname
 		p.Original = h.Filename
