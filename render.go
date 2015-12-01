@@ -215,6 +215,7 @@ func checkLinkPattern(b []byte, src int, end *int, post *uint64) bool {
 		v, e := strconv.ParseUint(string(b[src:idx]), 10, 64)
 		if e == nil {
 			*post = v
+			*end = idx
 			return true
 		}
 	}
