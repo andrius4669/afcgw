@@ -3,7 +3,7 @@
 <p style="margin-bottom:0">
 {{if .HasSubject}}<span style="color:blue">{{.FSubject}}</span> {{end}}
 {{if .HasEmail}}<a href="mailto:{{.FEmail}}">{{end}}
-{{if .HasName}}<span style="color:red">{{.FName}}</span>{{else}}<span style="color:green">{{.FName}}</span>{{end}}
+{{if .HasName}}<span style="color:red">{{.FName}}</span>{{else}}<span style="color:#117743">{{.FName}}</span>{{end}}
 {{if .HasEmail}}</a>{{end}}
 <time datetime="{{.FDate}}">{{.StrDate}}</time>
 <a href="/{{.Board}}/thread/{{.Thread}}#{{.Id}}">No.</a>

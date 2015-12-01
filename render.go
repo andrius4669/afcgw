@@ -230,8 +230,9 @@ func (p *postInfo) FMessage() string {
 	const (
 		tagGreentext = iota
 	)
+	// TODO: use CSS
 	var tagMap = map[uint]struct{ start, end []byte } {
-		tagGreentext: { []byte("<span style=\"color:green\">"), []byte("</span>") },
+		tagGreentext: { []byte("<span style=\"color:#789922\">"), []byte("</span>") },
 	}
 	var tagList []uint
 
