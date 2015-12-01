@@ -39,11 +39,12 @@ func initMime() {
 // timestamps returned by this are guaranteed to be unique
 var lastTimeMutex sync.Mutex
 var lastTime int64 = 0
-func uniqueUnixTime() int64 {
+func uniqueTimestamp() int64 {
 	lastTimeMutex.Lock()
 	defer lastTimeMutex.Unlock()
 
-	unixnow := time.Now().UTC().Unix()
+	t := time.Now().UTC()
+	unixnow := (t.Unix() * 1000) + (t.UnixNano() / 1000000)
 	if unixnow > lastTime {
 		lastTime = unixnow
 		return unixnow
@@ -158,7 +159,7 @@ func acceptPost(w http.ResponseWriter, r *http.Request, p *wPostInfo, board stri
 			http.Error(w, "file too big", 403) // 403 Forbidden
 			return false
 		}
-		fname := strconv.FormatInt(uniqueUnixTime(), 10) + ext
+		fname := strconv.FormatInt(uniqueTimestamp(), 10) + ext
 		fullname := "files/" + board + "/src/" + fname
 		tmpname := "files/" + board + "/src/tmp_" + fname
 		nf, err := os.OpenFile(tmpname, os.O_WRONLY|os.O_CREATE, 0666)
