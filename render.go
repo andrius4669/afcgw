@@ -81,7 +81,10 @@ func (p *postInfo) HasOriginal() bool {
 }
 
 func (p *postInfo) StrOriginal() string {
-	return template.HTMLEscapeString(p.Original)
+	if p.HasOriginal() {
+		return template.HTMLEscapeString(p.Original)
+	}
+	return template.HTMLEscapeString(p.File)
 }
 
 func (p *postInfo) FullOriginal() string {
@@ -90,6 +93,25 @@ func (p *postInfo) FullOriginal() string {
 		return u.EscapedPath()
 	}
 	return p.FullFile()
+}
+
+// whether thumb can be displayed for this file
+func (p *postInfo) CanThumb() bool {
+	return p.Thumb != ""
+}
+
+// bit diferent.. whether thumb can be displayed AND is generated from file itself
+func (p *postInfo) HasThumb() bool {
+	return len(p.Thumb) > 0 && p.Thumb[0] != '.'
+}
+
+func (p *postInfo) FullThumb() string {
+	if p.CanThumb() {
+		if p.HasThumb() {
+			return "/" + p.Board() + "/thumb/" + p.Thumb
+		}
+	}
+	return ""
 }
 
 func (p *postInfo) HasName() bool {

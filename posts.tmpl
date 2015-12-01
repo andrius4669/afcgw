@@ -11,11 +11,9 @@
 </p>
 {{if .HasFile}}
 <div>
-<p style="margin-bottom:0; margin-top: 0"><a href="{{.FullFile}}">{{.File}}</a>{{if .HasOriginal}} Original: <a href="{{.FullOriginal}}">{{.StrOriginal}}</a>{{end}}</p>
-{{/*
-<!-- include small img maybe -->
+<p style="margin-bottom:0; margin-top: 0">File: <a href="{{.FullOriginal}}">{{.StrOriginal}}</a></p>
 <a href="{{.FullFile}}">
-	image
+	{{if .CanThumb}}<img src="{{.FullThumb}}" alt="{{.File}}" />{{else}}{{.File}}{{end}}
 </a>
 */}}
 </div>
