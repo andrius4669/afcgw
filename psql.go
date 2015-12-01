@@ -53,6 +53,7 @@ func inputThreads(db *sql.DB, b *fullBoardInfo, board string) bool {
 			if err == sql.ErrNoRows {
 				// thread without OP, it broke. TODO: remove from list
 			}
+			panicErr(err)
 			b.Threads[i].Op = op
 		}
 
