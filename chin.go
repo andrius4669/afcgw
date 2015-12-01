@@ -93,6 +93,17 @@ func (HandlerType) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					return
 				}
 				serveFile(w, r, board + "/src/" + subinfo)
+			case "thumb":
+				if subinfo == "" || subinfo == "/" {
+					http.Redirect(w, r, "/" + board + "/", http.StatusFound)
+					return
+				}
+				subinfo = subinfo[1:]
+				if i := strings.IndexByte(subinfo, '/'); i != -1 || subinfo == "." || subinfo == ".." {
+					http.NotFound(w, r)
+					return
+				}
+				serveFile(w, r, board + "/thumb/" + subinfo)
 			case "mod":
 				if subinfo == "" {
 					http.Redirect(w, r, "/" + board + "/mod/", http.StatusFound)

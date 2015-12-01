@@ -7,6 +7,7 @@ import (
 	"text/template"
 	"net/url"
 	"time"
+	"strconv"
 )
 
 // basic info about board
@@ -154,10 +155,68 @@ var (
 	htmlBr   = []byte("<br />")
 )
 
+// check existence of cross-linking, ex: >>>/b/ >>>/pol/13548
+func checkCrossPattern(b []byte, src int, end *int, board *string, post *uint64) bool {
+	// shortest crosslink: >>>/a/ - 6 chars
+	if src + 6 < len(b) {
+		return false
+	}
+	if b[src+1] != '>' || b[src+2] != '>' || b[src+3] != '/' {
+		return false
+	}
+	src += 4
+	idx := src
+	for ;; idx++ {
+		if idx >= len(b) {
+			return false
+		}
+		if b[idx] == '/' {
+			if idx > src {
+				break
+			} else {
+				return false
+			}
+		}
+		if (b[idx] < 'a' || b[idx] > 'z') && (b[idx] < 'A' || b[idx] > 'Z') && (b[idx] < '0' || b[idx] > '9') {
+			return false
+		}
+	}
+	// can only break out with syntaxically correct board name
+	*board = string(b[src:idx])
+	idx ++
+	src = idx
+	for ;; idx++ {
+		if idx >= len(b) || b[idx] < '0' || b[idx] > '9' {
+			break
+		}
+	}
+	if idx > src {
+		v, e := strconv.ParseUint(string(b[src:idx]), 10, 64)
+		if e == nil {
+			*post = v
+		}
+	}
+	*end = idx
+	return true
+}
+
+func checkLinkPattern(b []byte, src int, end *int, post *uint64) bool {
+	return false
+}
+
 func (p *postInfo) FMessage() string {
 	b := []byte(p.Message)
 	var w bytes.Buffer
 	src, last := 0, 0
+
+	const (
+		tagGreentext = iota
+	)
+	var tagMap = map[uint]struct{ start, end []byte } {
+		tagGreentext: { []byte("<span class=\"greentext\">"), []byte("</span>") },
+	}
+	var tagList []uint
+
 	for src < len(b) {
 		c := b[src]
 		var inc int
@@ -176,13 +235,39 @@ func (p *postInfo) FMessage() string {
 			esc = htmlLt
 			inc = 1
 		case '>':
-			esc = htmlGt
-			inc = 1
+			var board string
+			var post uint64
+			var end int
+			if checkCrossPattern(b, src, &end, &board, &post) {
+				if post != 0 {
+					esc = []byte(fmt.Sprintf("<a href=\"/%s/thread/%d\">%s%s%s/%s/%d</a>", board, post, htmlGt, htmlGt, htmlGt, board, post))
+				} else {
+					esc = []byte(fmt.Sprintf("<a href=\"/%s/\">%s%s%s/%s/</a>", board, htmlGt, htmlGt, htmlGt, board))
+				}
+				inc = end - src
+			} else if checkLinkPattern(b, src, &end, &post) {
+				esc = []byte(fmt.Sprintf("<a href=\"#%d\">%s%s%d</a>", post, htmlGt, htmlGt, post))
+				inc = end - src
+			} else if src == 0 || b[src-1] == '\n' {
+				esc = append(tagMap[tagGreentext].start, htmlGt...)
+				inc = 1
+			} else {
+				esc = htmlGt
+				inc = 1
+			}
 		case '\n':
-			esc = htmlBr
+			for i := int(len(tagList)-1); i >= 0; i-- {
+				if tagList[i] == tagGreentext {
+					for j := int(len(tagList)-1); j >= i; j-- {
+						esc = append(esc, tagMap[tagList[j]].end...)
+					}
+					tagList = tagList[:i]
+				}
+			}
+			esc = append(esc, htmlBr...)
 			inc = 1
 		case '\r':
-			inc = 1
+			inc = 1 // just skip it
 		default:
 			src++
 			continue
