@@ -250,6 +250,7 @@ func (p *postInfo) FMessage() string {
 				inc = end - src
 			} else if src == 0 || b[src-1] == '\n' {
 				esc = append(tagMap[tagGreentext].start, htmlGt...)
+				tagList = append(tagList, tagGreentext)
 				inc = 1
 			} else {
 				esc = htmlGt
