@@ -158,12 +158,10 @@ var (
 // check existence of cross-linking, ex: >>>/b/ >>>/pol/13548
 func checkCrossPattern(b []byte, src int, end *int, board *string, post *uint64) bool {
 	// shortest crosslink: >>>/a/ - 6 chars
-	if src + 6 >= len(b) {
+	if src + 6 > len(b) || b[src+1] != '>' || b[src+2] != '>' || b[src+3] != '/' {
 		return false
 	}
-	if b[src+1] != '>' || b[src+2] != '>' || b[src+3] != '/' {
-		return false
-	}
+
 	src += 4
 	idx := src
 	for ;; idx++ {
@@ -201,6 +199,25 @@ func checkCrossPattern(b []byte, src int, end *int, board *string, post *uint64)
 }
 
 func checkLinkPattern(b []byte, src int, end *int, post *uint64) bool {
+	// shortest link: >>1 - 3 chars
+	if src + 3 > len(b) || b[src+1] != '>' {
+		return false
+	}
+
+	src += 2
+	idx := src
+	for ;; idx++ {
+		if idx >= len(b) || b[idx] < '0' || b[idx] > '9' {
+			break
+		}
+	}
+	if idx > src {
+		v, e := strconv.ParseUint(string(b[src:idx]), 10, 64)
+		if e == nil {
+			*post = v
+			return true
+		}
+	}
 	return false
 }
 
@@ -239,6 +256,7 @@ func (p *postInfo) FMessage() string {
 			var post uint64
 			var end int
 			if checkCrossPattern(b, src, &end, &board, &post) {
+				// TODO: query from db
 				if post != 0 {
 					esc = []byte(fmt.Sprintf("<a href=\"/%s/thread/%d\">%s%s%s/%s/%d</a>", board, post, htmlGt, htmlGt, htmlGt, board, post))
 				} else {
@@ -246,6 +264,7 @@ func (p *postInfo) FMessage() string {
 				}
 				inc = end - src
 			} else if checkLinkPattern(b, src, &end, &post) {
+				// TODO: query from db
 				esc = []byte(fmt.Sprintf("<a href=\"#%d\">%s%s%d</a>", post, htmlGt, htmlGt, post))
 				inc = end - src
 			} else if src == 0 || b[src-1] == '\n' {
