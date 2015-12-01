@@ -54,6 +54,7 @@ type postInfo struct {
 	Message  string
 	File     string
 	Original string
+	Thumb    string
 }
 
 func (p *postInfo) Board() string {

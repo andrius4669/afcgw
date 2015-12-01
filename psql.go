@@ -48,8 +48,8 @@ func inputThreads(db *sql.DB, b *fullBoardInfo, board string) bool {
 			var op fullPostInfo
 			op.parent = &b.Threads[i].threadInfo
 			// expliclty fetch OP
-			err = db.QueryRow(fmt.Sprintf("SELECT id, name, subject, email, date, message, file, original FROM %s.posts WHERE id=$1", board), b.Threads[i].Id).
-		                     Scan(&op.Id, &op.Name, &op.Subject, &op.Email, &op.Date, &op.Message, &op.File, &op.Original)
+			err = db.QueryRow(fmt.Sprintf("SELECT id, name, subject, email, date, message, file, original, thumb FROM %s.posts WHERE id=$1", board), b.Threads[i].Id).
+		                     Scan(&op.Id, &op.Name, &op.Subject, &op.Email, &op.Date, &op.Message, &op.File, &op.Original, &op.Thumb)
 			if err == sql.ErrNoRows {
 				// thread without OP, it broke. TODO: remove from list
 			}
@@ -57,12 +57,12 @@ func inputThreads(db *sql.DB, b *fullBoardInfo, board string) bool {
 		}
 
 		// TODO sorting and limiting (we need to show only few posts in board view)
-		rows, err = db.Query(fmt.Sprintf("SELECT id, name, subject, email, date, message, file, original FROM %s.posts WHERE thread=$1", board), b.Threads[i].Id)
+		rows, err = db.Query(fmt.Sprintf("SELECT id, name, subject, email, date, message, file, original, thumb FROM %s.posts WHERE thread=$1", board), b.Threads[i].Id)
 		panicErr(err)
 		for rows.Next() {
 			var p fullPostInfo
 			p.parent = &b.Threads[i].threadInfo
-			err = rows.Scan(&p.Id, &p.Name, &p.Subject, &p.Email, &p.Date, &p.Message, &p.File, &p.Original)
+			err = rows.Scan(&p.Id, &p.Name, &p.Subject, &p.Email, &p.Date, &p.Message, &p.File, &p.Original, &p.Thumb)
 			panicErr(err)
 			if p.Id == b.Threads[i].Id {
 				continue // OP already included
@@ -89,19 +89,19 @@ func inputPosts(db *sql.DB, t *fullThreadInfo, board string, thread uint64) bool
 	panicErr(err)
 
 	t.Op.parent = &t.threadInfo
-	err = db.QueryRow(fmt.Sprintf("SELECT id, name, subject, email, date, message, file, original FROM %s.posts WHERE id=$1", board), thread).
-	                 Scan(&t.Op.Id, &t.Op.Name, &t.Op.Subject, &t.Op.Email, &t.Op.Date, &t.Op.Message, &t.Op.File, &t.Op.Original);
+	err = db.QueryRow(fmt.Sprintf("SELECT id, name, subject, email, date, message, file, original, thumb FROM %s.posts WHERE id=$1", board), thread).
+	                 Scan(&t.Op.Id, &t.Op.Name, &t.Op.Subject, &t.Op.Email, &t.Op.Date, &t.Op.Message, &t.Op.File, &t.Op.Original, &t.Op.Thumb);
 	if err == sql.ErrNoRows {
 		return false
 	}
 	panicErr(err)
 
-	rows, err := db.Query(fmt.Sprintf("SELECT id, name, subject, email, date, message, file, original FROM %s.posts WHERE thread=$1", board), thread)
+	rows, err := db.Query(fmt.Sprintf("SELECT id, name, subject, email, date, message, file, original, thumb FROM %s.posts WHERE thread=$1", board), thread)
 	panicErr(err)
 	for rows.Next() {
 		var p fullPostInfo
 		p.parent = &t.threadInfo
-		err = rows.Scan(&p.Id, &p.Name, &p.Subject, &p.Email, &p.Date, &p.Message, &p.File, &p.Original)
+		err = rows.Scan(&p.Id, &p.Name, &p.Subject, &p.Email, &p.Date, &p.Message, &p.File, &p.Original, &p.Thumb)
 		panicErr(err)
 		if p.Id == thread {
 			continue // OP already included

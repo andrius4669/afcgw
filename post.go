@@ -11,12 +11,18 @@ import (
 	"time"
 	"io"
 	"strconv"
+	"errors"
 	"github.com/gographics/imagick/imagick"
 )
 
 const (
 	maxImageSize =  8<<20
 	maxMusicSize = 50<<20 // :^)
+)
+
+const (
+	thumbMaxW = 125
+	thumbMaxH = 125
 )
 
 // nice place to also include file sizes
@@ -79,6 +85,7 @@ type wPostInfo struct {
 	Message  string
 	File     string
 	Original string // original filename
+	Thumb    string
 }
 
 type postResult struct {
@@ -101,8 +108,87 @@ func delFile(board, fname string) {
 	os.Remove(fullname)
 }
 
+func delThumb(board, tname string) {
+	fullname := "files/" + board + "/thumb/" + tname
+	os.Remove(fullname)
+}
+
+func makeThumb(fullname, fname, board string) (string, error) {
+	var err error
+
+	mw := imagick.NewMagickWand()
+	defer mw.Destroy()
+
+	err = mw.PingImage(fullname)
+	if err != nil {
+		return "", err
+	}
+
+	l, err := mw.GetImageLength() // get length in bytes
+	if err != nil {
+		return "", err
+	}
+
+	// moar than 100 megs aint allrait for image...
+	if l > (50 << 20) {
+		return "", errors.New("unpacked image is bigger than 50 megabytes")
+	}
+
+	err = mw.ReadImage(fullname)
+	if err != nil {
+		return "", err
+	}
+
+	// calculate needed width and height. keep aspect ratio
+	w, h := mw.GetImageWidth(), mw.GetImageHeight()
+
+	if w < 1 || h < 1 {
+		return "", errors.New("this image a shit")
+	}
+
+	var needW, needH uint
+	ratio := float64(w)/float64(h)
+	if ratio >= 1 {
+		needW = thumbMaxW
+		needH = uint((thumbMaxH / ratio) + 0.5) // round to near
+		if needH < 1 {
+			needH = 1
+		}
+	} else {
+		needH = thumbMaxH
+		needW = uint((thumbMaxW * ratio) + 0.5) // round to near
+		if needW < 1 {
+			needW = 1
+		}
+	}
+
+	err = mw.ResizeImage(needW, needH, imagick.FILTER_LANCZOS, 1)
+	if err != nil {
+		return "", err
+	}
+
+	err = mw.SetImageCompressionQuality(95)
+	if err != nil {
+		return "", err
+	}
+
+	tname := fname + ".jpg"
+	ftname := "files/" + board + "/thumb/" + tname
+	ttname := "files/" + board + "/thumb/tmp_" + tname
+	err = mw.WriteImage(ttname)
+	if err != nil {
+		return "", err
+	}
+
+	os.Rename(ttname, ftname)
+
+	return tname, nil
+}
+
 func acceptPost(w http.ResponseWriter, r *http.Request, p *wPostInfo, board string) bool {
-	err := r.ParseMultipartForm(1 << 20)
+	var err error
+
+	err = r.ParseMultipartForm(1 << 20)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("400 bad request: ParseMultipartForm failed: %s", err), 400)
 		return false
@@ -180,10 +266,14 @@ func acceptPost(w http.ResponseWriter, r *http.Request, p *wPostInfo, board stri
 		nf.Close()
 		os.Rename(tmpname, fullname) // atomic :^)
 
-		/* TODO: make thumb */
-
 		p.File = fname
 		p.Original = h.Filename
+
+		tname, err := makeThumb(fullname, fname, board)
+		if err != nil {
+			fmt.Printf("error generating thumb for %s: %s\n", fname, err)
+		}
+		p.Thumb = tname
 	}
 
 	return true
@@ -210,13 +300,12 @@ func postNewThread(w http.ResponseWriter, r *http.Request, board string) {
 	nowtime := utcUnixTime()
 
 	var lastInsertId uint64
-	err = db.QueryRow(fmt.Sprintf("INSERT INTO %s.posts (name, subject, email, date, message, file, original) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id;", board),
-                      p.Name, p.Subject, p.Email, nowtime, p.Message, p.File, p.Original).Scan(&lastInsertId)
+	err = db.QueryRow(fmt.Sprintf("INSERT INTO %s.posts (name, subject, email, date, message, file, original, thumb) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id;", board),
+                      p.Name, p.Subject, p.Email, nowtime, p.Message, p.File, p.Original, p.Thumb).Scan(&lastInsertId)
 	panicErr(err)
 
 	stmt, err := db.Prepare(fmt.Sprintf("INSERT INTO %s.threads (id, bump) VALUES ($1, $2)", board))
 	panicErr(err)
-
 	_, err = stmt.Exec(lastInsertId, nowtime) // result isn't very meaningful for us, we check err regardless
 	panicErr(err)
 
@@ -250,9 +339,16 @@ func postNewPost(w http.ResponseWriter, r *http.Request, board string, thread ui
 		return
 	}
 
+	nowtime := utcUnixTime()
+
 	var lastInsertId uint64
-	err = db.QueryRow(fmt.Sprintf("INSERT INTO %s.posts (thread, name, subject, email, date, message, file, original) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id;", board),
-                      thread, p.Name, p.Subject, p.Email, utcUnixTime(), p.Message, p.File, p.Original).Scan(&lastInsertId)
+	err = db.QueryRow(fmt.Sprintf("INSERT INTO %s.posts (thread, name, subject, email, date, message, file, original, thumb) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id;", board),
+                      thread, p.Name, p.Subject, p.Email, nowtime, p.Message, p.File, p.Original, p.Thumb).Scan(&lastInsertId)
+	panicErr(err)
+
+	stmt, err := db.Prepare(fmt.Sprintf("UPDATE %s.threads SET bump = $1 WHERE id = $2", board))
+	panicErr(err)
+	_, err = stmt.Exec(nowtime, thread)
 	panicErr(err)
 
 	var pr = postResult{Board: board, Thread: thread, Post: lastInsertId}
@@ -262,18 +358,20 @@ func postNewPost(w http.ResponseWriter, r *http.Request, board string, thread ui
 func pruneThread(db *sql.DB, board string, thread uint64) {
 	stmt, err := db.Prepare(fmt.Sprintf("DELETE FROM %s.threads WHERE id=$1", board))
 	panicErr(err)
-
 	_, err = stmt.Exec(thread) // result isn't very meaningful for us, but we check err regardless
 	panicErr(err)
 
-	rows, err := db.Query(fmt.Sprintf("DELETE FROM %s.posts WHERE thread=$1 RETURNING file", board), thread)
+	rows, err := db.Query(fmt.Sprintf("DELETE FROM %s.posts WHERE thread=$1 RETURNING file, thumb", board), thread)
 	panicErr(err)
 	for rows.Next() {
-		var fname sql.NullString
-		err = rows.Scan(&fname)
+		var fname, tname sql.NullString
+		err = rows.Scan(&fname, &tname)
 		panicErr(err)
 		if fname.Valid && fname.String != "" {
 			delFile(board, fname.String)
+		}
+		if tname.Valid && tname.String != "" && tname.String[0] != '.' {
+			delThumb(board, tname.String)
 		}
 	}
 }
@@ -295,7 +393,8 @@ func removePost(w http.ResponseWriter, r *http.Request, pr *postResult, board st
 
 	var thread sql.NullInt64
 	var fname  sql.NullString
-	err = db.QueryRow(fmt.Sprintf("DELETE FROM %s.posts WHERE id=$1 RETURNING thread, file", board), post).Scan(&thread, &fname)
+	var tname  sql.NullString
+	err = db.QueryRow(fmt.Sprintf("DELETE FROM %s.posts WHERE id=$1 RETURNING thread, file, thumb", board), post).Scan(&thread, &fname, &tname)
 	if err == sql.ErrNoRows {
 		return true // already deleted
 	}
@@ -303,6 +402,9 @@ func removePost(w http.ResponseWriter, r *http.Request, pr *postResult, board st
 
 	if fname.Valid && fname.String != "" {
 		delFile(board, fname.String)
+	}
+	if tname.Valid && tname.String != "" && tname.String[0] != '.' {
+		delThumb(board, tname.String)
 	}
 
 	// if it was OP, prune whole thread
