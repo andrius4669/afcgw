@@ -71,9 +71,9 @@ func makeIMagickThumb(source, destdir, dest, destext, bgcolor string) error {
 	if bgcolor != "" {
 		// flatten image to make transparent shit look allright
 		pw := imagick.NewPixelWand()
+		defer pw.Destroy()
 		pw.SetColor(bgcolor)
 		err = mw.SetImageBackgroundColor(pw)
-		pw.Destroy()
 		if err != nil {
 			return err
 		}
@@ -110,7 +110,7 @@ func makeIMagickThumb(source, destdir, dest, destext, bgcolor string) error {
 func makeThumb(fullname, fname, board string) (string, error) {
 	var err error
 
-	err = makeIMagickThumb(fullname, pathThumbDir(board), fname, "jpg", "#0000FF")
+	err = makeIMagickThumb(fullname, pathThumbDir(board), fname, "jpg", "")
 	if err != nil {
 		return "", err
 	}
