@@ -64,7 +64,7 @@ func makeIMagickThumb(source, destdir, dest, destext, bgcolor string) error {
 	}
 
 	// set to first frame incase its gif or sth like that
-	//mw.SetIteratorIndex(0)
+	mw.SetFirstIterator()
 
 	// calculate needed width and height. keep aspect ratio
 	w, h := mw.GetImageWidth(), mw.GetImageHeight()
@@ -90,9 +90,9 @@ func makeIMagickThumb(source, destdir, dest, destext, bgcolor string) error {
 	if bgcolor != "" {
 		// flatten image to make transparent shit look allright
 		pw := imagick.NewPixelWand()
-		defer pw.Destroy()
 		pw.SetColor(bgcolor)
 		err = mw.SetImageBackgroundColor(pw)
+		pw.Destroy()
 		if err != nil {
 			return err
 		}
@@ -130,22 +130,21 @@ func runConvertCmd(gm bool, source, destdir, dest, destext, bgcolor string) erro
 	tmpfile := destdir + "/" + ".tmp." + dest + "." + destext
 	dstfile := destdir + "/" + dest + "." + destext
 
+	var runfile string
 	var args []string
-	if gm {
+
+	if !gm {
+		runfile = "convert"
+	} else {
+		runfile = "gm"
 		args = append(args, "convert")
 	}
+
 	args = append(args, source + "[0]", "-thumbnail", fmt.Sprintf("%dx%d", thumbMaxW, thumbMaxH))
 	if bgcolor != "" {
 		args = append(args, "-background", bgcolor, "-flatten")
 	}
 	args = append(args, "-auto-orient", tmpfile)
-
-	var runfile string
-	if !gm {
-		runfile = "convert"
-	} else {
-		runfile = "gm"
-	}
 
 	cmd := exec.Command(runfile, args...)
 	cmd.Run()
