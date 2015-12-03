@@ -43,28 +43,25 @@ func makeIMagickThumb(source, destdir, dest, destext, bgcolor string) error {
 	mw := imagick.NewMagickWand()
 	defer mw.Destroy()
 
-	err = mw.PingImage(source)
-	if err != nil {
-		return err
-	}
+//	err = mw.PingImage(source)
+//	if err != nil {
+//		return err
+//	}
 
-	l, err := mw.GetImageLength() // get length in bytes
-	if err != nil {
-		return err
-	}
+//	l, err := mw.GetImageLength() // get length in bytes
+//	if err != nil {
+//		return err
+//	}
 
 	// moar than 50 megs aint allrait for image...
-	if l > (50 << 20) {
-		return errors.New("unpacked image is bigger than 50 megabytes")
-	}
+//	if l > (50 << 20) {
+//		return errors.New("unpacked image is bigger than 50 megabytes")
+//	}
 
-	err = mw.ReadImage(source)
+	err = mw.ReadImage(source + "[0]")
 	if err != nil {
 		return err
 	}
-
-	// set to first frame incase its gif or sth like that
-	mw.SetFirstIterator()
 
 	// calculate needed width and height. keep aspect ratio
 	w, h := mw.GetImageWidth(), mw.GetImageHeight()
