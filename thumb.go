@@ -134,7 +134,7 @@ func runConvertCmd(gm bool, source, destdir, dest, destext, bgcolor string) erro
 	if gm {
 		args = append(args, "convert")
 	}
-	args = append(args, source, "-thumbnail", fmt.Sprintf("%dx%d", thumbMaxW, thumbMaxH))
+	args = append(args, source + "[0]", "-thumbnail", fmt.Sprintf("%dx%d", thumbMaxW, thumbMaxH))
 	if bgcolor != "" {
 		args = append(args, "-background", bgcolor, "-flatten")
 	}
