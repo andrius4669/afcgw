@@ -93,7 +93,7 @@ func makeIMagickThumb(source, destdir, dest, destext, bgcolor string) error {
 		mw = nmw
 	}
 
-	err = mw.SetImageCompressionQuality(95)
+	err = mw.SetImageCompressionQuality(80)
 	if err != nil {
 		return err
 	}
