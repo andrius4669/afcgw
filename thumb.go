@@ -11,6 +11,10 @@ import (
 	"strings"
 )
 
+const (
+	thumbBgOp    = "red"
+	thumbBgReply = "blue"
+)
 
 const (
 	thumbMaxW = 128
@@ -122,25 +126,43 @@ func makeIMagickThumb(source, destdir, dest, destext, bgcolor string) error {
 	return nil
 }
 
-func makeConvertThumb(source, destdir, dest, destext, bgcolor string) error {
+func runConvertCmd(gm bool, source, destdir, dest, destext, bgcolor string) error {
 	tmpfile := destdir + "/" + ".tmp." + dest + "." + destext
 	dstfile := destdir + "/" + dest + "." + destext
-	cmd := exec.Command("convert", source, "-thumbnail", fmt.Sprintf("%dx%d", thumbMaxW, thumbMaxH), "-auto-orient", "+profile", "*", tmpfile)
+
+	var args []string
+	if gm {
+		args = append(args, "convert")
+	}
+	args = append(args, source, "-thumbnail", fmt.Sprintf("%dx%d", thumbMaxW, thumbMaxH))
+	if bgcolor != "" {
+		args = append(args, "-background", bgcolor, "-flatten")
+	}
+	args = append(args, "-auto-orient", tmpfile)
+
+	var runfile string
+	if !gm {
+		runfile = "convert"
+	} else {
+		runfile = "gm"
+	}
+
+	cmd := exec.Command(runfile, args...)
 	cmd.Run()
 	os.Rename(tmpfile, dstfile)
-	return nil
+
+	return nil // TODO
+}
+
+func makeConvertThumb(source, destdir, dest, destext, bgcolor string) error {
+	return runConvertCmd(false, source, destdir, dest, destext, bgcolor)
 }
 
 func makeGmConvertThumb(source, destdir, dest, destext, bgcolor string) error {
-	tmpfile := destdir + "/" + ".tmp." + dest + "." + destext
-	dstfile := destdir + "/" + dest + "." + destext
-	cmd := exec.Command("gm", "convert", source, "-thumbnail", fmt.Sprintf("%dx%d", thumbMaxW, thumbMaxH), "-auto-orient", "+profile", "*", tmpfile)
-	cmd.Run()
-	os.Rename(tmpfile, dstfile)
-	return nil
+	return runConvertCmd(true, source, destdir, dest, destext, bgcolor)
 }
 
-func makeThumb(fullname, fname, board, method string) (string, error) {
+func makeThumb(fullname, fname, board, method string, isop bool) (string, error) {
 	var err error
 
 	// empty = automatic
@@ -148,28 +170,38 @@ func makeThumb(fullname, fname, board, method string) (string, error) {
 		// TODO: determine default method depening on mime type/extension
 		method = thumbDefImageMethod
 	}
+
 	var format string
 	if i := strings.IndexByte(method, '/'); i != -1 {
 		method, format = method[:i], method[i+1:]
 	}
+
 	if format == "" {
 		format = thumbDefMethodFormat[method]
 	}
+
+	var bgcolor string
+	if isop {
+		bgcolor = thumbBgOp
+	} else {
+		bgcolor = thumbBgReply
+	}
+
 	switch method {
 		case "imagick":
-			err = makeIMagickThumb(fullname, pathThumbDir(board), fname, format, "")
+			err = makeIMagickThumb(fullname, pathThumbDir(board), fname, format, bgcolor)
 			if err != nil {
 				return "", err
 			}
 			return fname + "." + format, nil
 		case "convert":
-			err = makeConvertThumb(fullname, pathThumbDir(board), fname, format, "")
+			err = makeConvertThumb(fullname, pathThumbDir(board), fname, format, bgcolor)
 			if err != nil {
 				return "", err
 			}
 			return fname + "." + format, nil
 		case "gm-convert":
-			err = makeGmConvertThumb(fullname, pathThumbDir(board), fname, format, "")
+			err = makeGmConvertThumb(fullname, pathThumbDir(board), fname, format, bgcolor)
 			if err != nil {
 				return "", err
 			}
@@ -240,7 +272,7 @@ func makeThumbs(method, board, file string) {
 		var ntname string
 		fmt.Printf(">%s", modthumbs[i].file)
 		st_time := time.Now().UnixNano()
-		ntname, err = makeThumb(pathSrcFile(board, modthumbs[i].file), modthumbs[i].file, board, method)
+		ntname, err = makeThumb(pathSrcFile(board, modthumbs[i].file), modthumbs[i].file, board, method, modthumbs[i].id == modthumbs[i].thread)
 		ed_time := time.Now().UnixNano()
 		spent := uint64(ed_time-st_time)
 		if err == nil {

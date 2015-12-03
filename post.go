@@ -96,7 +96,7 @@ func delThumb(board, tname string) {
 	os.Remove(pathThumbFile(board, tname))
 }
 
-func acceptPost(w http.ResponseWriter, r *http.Request, p *wPostInfo, board string) bool {
+func acceptPost(w http.ResponseWriter, r *http.Request, p *wPostInfo, board string, isop bool) bool {
 	var err error
 
 	err = r.ParseMultipartForm(1 << 20)
@@ -176,7 +176,7 @@ func acceptPost(w http.ResponseWriter, r *http.Request, p *wPostInfo, board stri
 		p.File = fname
 		p.Original = h.Filename
 
-		tname, err := makeThumb(fullname, fname, board, "")
+		tname, err := makeThumb(fullname, fname, board, "", isop)
 		if err != nil {
 			fmt.Printf("error generating thumb for %s: %s\n", fname, err)
 		}
@@ -200,7 +200,7 @@ func postNewThread(w http.ResponseWriter, r *http.Request, board string) {
 	}
 	panicErr(err)
 
-	if !acceptPost(w, r, &p, board) {
+	if !acceptPost(w, r, &p, board, true) {
 		return
 	}
 
@@ -242,7 +242,7 @@ func postNewPost(w http.ResponseWriter, r *http.Request, board string, thread ui
 	}
 	panicErr(err)
 
-	if !acceptPost(w, r, &p, board) {
+	if !acceptPost(w, r, &p, board, false) {
 		return
 	}
 
