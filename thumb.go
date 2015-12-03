@@ -3,10 +3,12 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"time"
 	"errors"
 	"github.com/gographics/imagick/imagick"
 	"database/sql"
+	"strings"
 )
 
 
@@ -20,6 +22,16 @@ const (
 	thumbConvert
 	thumbGMConvert
 )
+
+const (
+	thumbDefImageMethod = "imagick/jpg"
+)
+
+var thumbDefMethodFormat = map[string]string{
+	"imagick":    "jpg",
+	"convert":    "jpg",
+	"gm-convert": "jpg",
+}
 
 func makeIMagickThumb(source, destdir, dest, destext, bgcolor string) error {
 	var err error
@@ -110,18 +122,60 @@ func makeIMagickThumb(source, destdir, dest, destext, bgcolor string) error {
 	return nil
 }
 
+func makeConvertThumb(source, destdir, dest, destext, bgcolor string) error {
+	tmpfile := destdir + "/" + ".tmp." + dest + "." + destext
+	dstfile := destdir + "/" + dest + "." + destext
+	cmd := exec.Command("convert", source, "-thumbnail", fmt.Sprintf("%dx%d", thumbMaxW, thumbMaxH), "-auto-orient", "+profile", "*", tmpfile)
+	cmd.Run()
+	os.Rename(tmpfile, dstfile)
+	return nil
+}
+
+func makeGmConvertThumb(source, destdir, dest, destext, bgcolor string) error {
+	tmpfile := destdir + "/" + ".tmp." + dest + "." + destext
+	dstfile := destdir + "/" + dest + "." + destext
+	cmd := exec.Command("gm", "convert", source, "-thumbnail", fmt.Sprintf("%dx%d", thumbMaxW, thumbMaxH), "-auto-orient", "+profile", "*", tmpfile)
+	cmd.Run()
+	os.Rename(tmpfile, dstfile)
+	return nil
+}
+
 func makeThumb(fullname, fname, board, method string) (string, error) {
 	var err error
 
 	// empty = automatic
-	if method == "" || method == "imagick-jpg" {
-		err = makeIMagickThumb(fullname, pathThumbDir(board), fname, "jpg", "")
-		if err != nil {
-			return "", err
-		}
-		return fname + ".jpg", nil
-	} else {
-		return "", errors.New("unknown thumb generation method")
+	if method == "" {
+		// TODO: determine default method depening on mime type/extension
+		method = thumbDefImageMethod
+	}
+	var format string
+	if i := strings.IndexByte(method, '/'); i != -1 {
+		method, format = method[:i], method[i+1:]
+	}
+	if format == "" {
+		format = thumbDefMethodFormat[method]
+	}
+	switch method {
+		case "imagick":
+			err = makeIMagickThumb(fullname, pathThumbDir(board), fname, format, "")
+			if err != nil {
+				return "", err
+			}
+			return fname + "." + format, nil
+		case "convert":
+			err = makeConvertThumb(fullname, pathThumbDir(board), fname, format, "")
+			if err != nil {
+				return "", err
+			}
+			return fname + "." + format, nil
+		case "gm-convert":
+			err = makeGmConvertThumb(fullname, pathThumbDir(board), fname, format, "")
+			if err != nil {
+				return "", err
+			}
+			return fname + "." + format, nil
+		default:
+			return "", errors.New("unknown thumb generation method")
 	}
 }
 
@@ -196,13 +250,14 @@ func makeThumbs(method, board, file string) {
 		}
 		total_time += spent
 		if ntname != modthumbs[i].thumb {
-			if modthumbs[i].thumb != "" {
-				os.Remove(modthumbs[i].thumb)
-			}
 			stmt, err := db.Prepare(fmt.Sprintf("UPDATE %s.posts SET thumb = $1 WHERE id = $2", board))
 			panicErr(err)
 			_, err = stmt.Exec(ntname, modthumbs[i].id)
 			panicErr(err)
+
+			if modthumbs[i].thumb != "" {
+				os.Remove(pathThumbFile(board, modthumbs[i].thumb))
+			}
 		}
 	}
 	fmt.Printf("done. total time spent generating %d thumbs: %.6fs\n", len(modthumbs), float64(total_time)/1000000000.0)
