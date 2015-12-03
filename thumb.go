@@ -43,20 +43,7 @@ func makeIMagickThumb(source, destdir, dest, destext, bgcolor string) error {
 	mw := imagick.NewMagickWand()
 	defer mw.Destroy()
 
-//	err = mw.PingImage(source)
-//	if err != nil {
-//		return err
-//	}
-
-//	l, err := mw.GetImageLength() // get length in bytes
-//	if err != nil {
-//		return err
-//	}
-
-	// moar than 50 megs aint allrait for image...
-//	if l > (50 << 20) {
-//		return errors.New("unpacked image is bigger than 50 megabytes")
-//	}
+	mw.SetResourceLimit(imagick.RESOURCE_MEMORY, 50)
 
 	err = mw.ReadImage(source + "[0]")
 	if err != nil {
@@ -84,6 +71,11 @@ func makeIMagickThumb(source, destdir, dest, destext, bgcolor string) error {
 		}
 	}
 
+	err = mw.ThumbnailImage(needW, needH)
+	if err != nil {
+		return err
+	}
+
 	if bgcolor != "" {
 		// flatten image to make transparent shit look allright
 		pw := imagick.NewPixelWand()
@@ -99,11 +91,6 @@ func makeIMagickThumb(source, destdir, dest, destext, bgcolor string) error {
 		}
 		mw.Destroy()
 		mw = nmw
-	}
-
-	err = mw.ThumbnailImage(needW, needH)
-	if err != nil {
-		return err
 	}
 
 	err = mw.SetImageCompressionQuality(95)
