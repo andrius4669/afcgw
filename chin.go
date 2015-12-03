@@ -16,7 +16,7 @@ func panicErr(err error) {
 }
 
 func serveFile(w http.ResponseWriter, r *http.Request, fname string) {
-	f, err := os.Open("files/" + fname)
+	f, err := os.Open(fname)
 	if err != nil {
 		http.NotFound(w, r)
 		return
@@ -56,6 +56,13 @@ func (HandlerType) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		restype := board[idx+1:]
 		board = board[:idx]
 
+		// some special non-board names
+		switch board {
+			case "static":
+				serveFile(w, r, pathStaticSafeFile("", restype))
+				return
+		}
+
 		var subinfo string
 		if i := strings.IndexByte(restype, '/'); i != -1 {
 			restype, subinfo = restype[:i], restype[i:]
@@ -92,7 +99,7 @@ func (HandlerType) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					http.NotFound(w, r)
 					return
 				}
-				serveFile(w, r, board + "/src/" + subinfo)
+				serveFile(w, r, pathSrcFile(board, subinfo))
 			case "thumb":
 				if subinfo == "" || subinfo == "/" {
 					http.Redirect(w, r, "/" + board + "/", http.StatusFound)
@@ -103,7 +110,7 @@ func (HandlerType) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					http.NotFound(w, r)
 					return
 				}
-				serveFile(w, r, board + "/thumb/" + subinfo)
+				serveFile(w, r, pathThumbFile(board, subinfo))
 			case "mod":
 				if subinfo == "" {
 					http.Redirect(w, r, "/" + board + "/mod/", http.StatusFound)

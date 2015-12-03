@@ -11,18 +11,11 @@ import (
 	"time"
 	"io"
 	"strconv"
-	"errors"
-	"github.com/gographics/imagick/imagick"
 )
 
 const (
 	maxImageSize =  8<<20
 	maxMusicSize = 50<<20 // :^)
-)
-
-const (
-	thumbMaxW = 125
-	thumbMaxH = 125
 )
 
 // nice place to also include file sizes
@@ -41,14 +34,6 @@ func initMime() {
 	mime.AddExtensionType(".bmp", "image/bmp")
 	mime.AddExtensionType(".ogg", "audio/ogg")
 	mime.AddExtensionType(".flac", "audio/flac")
-}
-
-func initImageMagick() {
-	imagick.Initialize()
-}
-
-func killImageMagick() {
-	imagick.Terminate()
 }
 
 // timestamps returned by this are guaranteed to be unique
@@ -102,87 +87,13 @@ func (r *postResult) IsThread() bool {
 	return r.Thread == r.Post
 }
 
-// deletes file and stuff cached from it
+// deletes file
 func delFile(board, fname string) {
-	fullname := "files/" + board + "/src/" + fname
-	os.Remove(fullname)
+	os.Remove(pathSrcFile(board, fname))
 }
 
 func delThumb(board, tname string) {
-	fullname := "files/" + board + "/thumb/" + tname
-	os.Remove(fullname)
-}
-
-func makeThumb(fullname, fname, board string) (string, error) {
-	var err error
-
-	mw := imagick.NewMagickWand()
-	defer mw.Destroy()
-
-	err = mw.PingImage(fullname)
-	if err != nil {
-		return "", err
-	}
-
-	l, err := mw.GetImageLength() // get length in bytes
-	if err != nil {
-		return "", err
-	}
-
-	// moar than 100 megs aint allrait for image...
-	if l > (50 << 20) {
-		return "", errors.New("unpacked image is bigger than 50 megabytes")
-	}
-
-	err = mw.ReadImage(fullname)
-	if err != nil {
-		return "", err
-	}
-
-	// calculate needed width and height. keep aspect ratio
-	w, h := mw.GetImageWidth(), mw.GetImageHeight()
-
-	if w < 1 || h < 1 {
-		return "", errors.New("this image a shit")
-	}
-
-	var needW, needH uint
-	ratio := float64(w)/float64(h)
-	if ratio >= 1 {
-		needW = thumbMaxW
-		needH = uint((thumbMaxH / ratio) + 0.5) // round to near
-		if needH < 1 {
-			needH = 1
-		}
-	} else {
-		needH = thumbMaxH
-		needW = uint((thumbMaxW * ratio) + 0.5) // round to near
-		if needW < 1 {
-			needW = 1
-		}
-	}
-
-	err = mw.ResizeImage(needW, needH, imagick.FILTER_LANCZOS, 1)
-	if err != nil {
-		return "", err
-	}
-
-	err = mw.SetImageCompressionQuality(95)
-	if err != nil {
-		return "", err
-	}
-
-	tname := fname + ".jpg"
-	ftname := "files/" + board + "/thumb/" + tname
-	ttname := "files/" + board + "/thumb/tmp_" + tname
-	err = mw.WriteImage(ttname)
-	if err != nil {
-		return "", err
-	}
-
-	os.Rename(ttname, ftname)
-
-	return tname, nil
+	os.Remove(pathThumbFile(board, tname))
 }
 
 func acceptPost(w http.ResponseWriter, r *http.Request, p *wPostInfo, board string) bool {
@@ -241,10 +152,6 @@ func acceptPost(w http.ResponseWriter, r *http.Request, p *wPostInfo, board stri
 		if mt != "" {
 			mt, _, _ = mime.ParseMediaType(mt)
 		}
-		if mt == "" {
-			http.Error(w, "file type not allowed", 403) // 403 Forbidden
-			return false
-		}
 		maxSize, ok := allowedTypes[mt]
 		if !ok {
 			http.Error(w, "file type not allowed", 403) // 403 Forbidden
@@ -255,8 +162,8 @@ func acceptPost(w http.ResponseWriter, r *http.Request, p *wPostInfo, board stri
 			return false
 		}
 		fname := strconv.FormatInt(uniqueTimestamp(), 10) + ext
-		fullname := "files/" + board + "/src/" + fname
-		tmpname := "files/" + board + "/src/tmp_" + fname
+		fullname := pathSrcFile(board, fname)
+		tmpname := pathSrcFile(board, ".tmp." + fname)
 		nf, err := os.OpenFile(tmpname, os.O_WRONLY|os.O_CREATE, 0666)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("500 internal server error: %s", err), 500)
