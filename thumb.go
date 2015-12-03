@@ -1,9 +1,12 @@
 package main
 
 import (
+	"fmt"
 	"os"
+	"time"
 	"errors"
 	"github.com/gographics/imagick/imagick"
+	"database/sql"
 )
 
 
@@ -45,7 +48,7 @@ func makeIMagickThumb(source, destdir, dest, destext, bgcolor string) error {
 	}
 
 	// set to first frame incase its gif or sth like that
-	mw.SetIteratorIndex(0)
+	//mw.SetIteratorIndex(0)
 
 	// calculate needed width and height. keep aspect ratio
 	w, h := mw.GetImageWidth(), mw.GetImageHeight()
@@ -107,14 +110,19 @@ func makeIMagickThumb(source, destdir, dest, destext, bgcolor string) error {
 	return nil
 }
 
-func makeThumb(fullname, fname, board string) (string, error) {
+func makeThumb(fullname, fname, board, method string) (string, error) {
 	var err error
 
-	err = makeIMagickThumb(fullname, pathThumbDir(board), fname, "jpg", "")
-	if err != nil {
-		return "", err
+	// empty = automatic
+	if method == "" || method == "imagick-jpg" {
+		err = makeIMagickThumb(fullname, pathThumbDir(board), fname, "jpg", "")
+		if err != nil {
+			return "", err
+		}
+		return fname + ".jpg", nil
+	} else {
+		return "", errors.New("unknown thumb generation method")
 	}
-	return fname + ".jpg", nil
 }
 
 
@@ -126,7 +134,76 @@ func killImageMagick() {
 	imagick.Terminate()
 }
 
+func makeThumbs(method, board, file string) {
+	var err error
 
-func makeThumbs(board, file string) {
+	db := openSQL()
+	defer db.Close()
 
+	var bname string
+	err = db.QueryRow("SELECT name FROM boards WHERE name=$1", board).Scan(&bname)
+	if err == sql.ErrNoRows {
+		fmt.Printf("error: board does not exist")
+		return
+	}
+	panicErr(err)
+
+	var rows *sql.Rows
+	if file == "" {
+		rows, err = db.Query(fmt.Sprintf("SELECT id, thread, file, thumb FROM %s.posts", board))
+	} else {
+		rows, err = db.Query(fmt.Sprintf("SELECT id, thread, file, thumb FROM %s.posts WHERE file=$1", board), file)
+	}
+	panicErr(err)
+
+	type tpost struct {
+		id, thread uint64
+		file, thumb string
+	}
+
+	var modthumbs []tpost
+
+	for rows.Next() {
+		var p tpost
+		var pthread sql.NullInt64
+		err = rows.Scan(&p.id, &pthread, &p.file, &p.thumb)
+		panicErr(err)
+		// if file does not exist or has special meaning or thumb already has special meaning assigned, don't regenerate
+		if p.file != "" && p.file[0] != '/' && (len(p.thumb) < 1 || p.thumb[0] != '/') {
+			if !pthread.Valid || pthread.Int64 == 0 || uint64(pthread.Int64) == p.id {
+				p.thread = p.id
+			} else {
+				p.thread = uint64(pthread.Int64)
+			}
+			modthumbs = append(modthumbs, p)
+		}
+	}
+
+	fmt.Printf("will regenerate %d thumbs\n", len(modthumbs))
+
+	var total_time uint64 = 0
+	for i := range modthumbs {
+		var ntname string
+		fmt.Printf(">%s", modthumbs[i].file)
+		st_time := time.Now().UnixNano()
+		ntname, err = makeThumb(pathSrcFile(board, modthumbs[i].file), modthumbs[i].file, board, method)
+		ed_time := time.Now().UnixNano()
+		spent := uint64(ed_time-st_time)
+		if err == nil {
+			fmt.Printf(" done: %.3fms\n", float64(spent)/1000000.0)
+		} else {
+			fmt.Printf(" fail[%s]: %.3fms\n", err, float64(spent)/1000000.0)
+		}
+		total_time += spent
+		if ntname != modthumbs[i].thumb {
+			if modthumbs[i].thumb != "" {
+				os.Remove(modthumbs[i].thumb)
+			}
+			stmt, err := db.Prepare(fmt.Sprintf("UPDATE %s.posts SET thumb = $1 WHERE id = $2", board))
+			panicErr(err)
+			_, err = stmt.Exec(ntname, modthumbs[i].id)
+			panicErr(err)
+		}
+	}
+	fmt.Printf("done. total time spent generating %d thumbs: %.6fs\n", len(modthumbs), float64(total_time)/1000000000.0)
 }

@@ -1,7 +1,7 @@
 package main
 
 import (
-//	"fmt"
+	"fmt"
 	"net/http"
 	"strings"
 	"os"
@@ -185,10 +185,33 @@ func init() {
 }
 
 func main() {
-	loadTemplates()
+	if len(os.Args) < 2 {
+		loadTemplates()
 
-	initImageMagick()
-	defer killImageMagick()
+		initImageMagick()
+		defer killImageMagick()
 
-	http.ListenAndServe(":1337", &HandlerType{})
+		http.ListenAndServe(":1337", &HandlerType{})
+	} else {
+		cmd := os.Args[1]
+		var method string
+		if i := strings.IndexByte(cmd, '/'); i != -1 {
+			cmd, method = cmd[:i], cmd[i+1:]
+		}
+		switch(cmd) {
+			case "thumb":
+				var board string
+				if len(os.Args) > 2 {
+					board = os.Args[2]
+				}
+				var file string
+				if len(os.Args) > 2 {
+					board = os.Args[3]
+				}
+				makeThumbs(method, board, file)
+			default:
+				fmt.Printf("unknown command: %s\n", cmd)
+		}
+		return
+	}
 }
