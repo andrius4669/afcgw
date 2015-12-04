@@ -27,8 +27,10 @@ const (
 	thumbGMConvert
 )
 
+
+// imagick backend is damn slow for some reason.....
 const (
-	thumbDefImageMethod = "imagick/jpg"
+	thumbDefImageMethod = "convert/jpg"
 )
 
 var thumbDefMethodFormat = map[string]string{
@@ -93,7 +95,7 @@ func makeIMagickThumb(source, destdir, dest, destext, bgcolor string) error {
 		mw = nmw
 	}
 
-	err = mw.SetImageCompressionQuality(80)
+	err = mw.SetImageCompressionQuality(90)
 	if err != nil {
 		return err
 	}
@@ -131,10 +133,15 @@ func runConvertCmd(gm bool, source, destdir, dest, destext, bgcolor string) erro
 	args = append(args, "-auto-orient", tmpfile)
 
 	cmd := exec.Command(runfile, args...)
-	cmd.Run()
+	err := cmd.Run()
+	if err != nil {
+		os.Remove(tmpfile)
+		return err
+	}
+
 	os.Rename(tmpfile, dstfile)
 
-	return nil // TODO
+	return nil
 }
 
 func makeConvertThumb(source, destdir, dest, destext, bgcolor string) error {
