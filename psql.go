@@ -39,6 +39,7 @@ func inputThreads(db *sql.DB, b *fullBoardInfo, board string) bool {
 	for rows.Next() {
 		var t fullThreadInfo
 		t.parent = &b.boardInfo
+		t.postMap = make(map[uint64]*fullPostInfo)
 		rows.Scan(&t.Id)
 		b.Threads = append(b.Threads, t)
 	}

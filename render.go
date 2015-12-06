@@ -38,7 +38,7 @@ func renderFront(w http.ResponseWriter, r *http.Request) {
 	var f fullFrontData
 	inputBoards(db, &f)
 
-	execTemplate(w, "boards", &f)
+	execTemplate(w, "front", &f)
 }
 
 func renderBoard(w http.ResponseWriter, r *http.Request, board string, mod bool) {
@@ -56,7 +56,7 @@ func renderBoard(w http.ResponseWriter, r *http.Request, board string, mod bool)
 		processThread(&b.Threads[i], db)
 	}
 
-	execTemplate(w, "threads", &b)
+	execTemplate(w, "board", &b)
 }
 
 func renderThread(w http.ResponseWriter, r *http.Request, board string, thread uint64, mod bool) {
@@ -64,6 +64,7 @@ func renderThread(w http.ResponseWriter, r *http.Request, board string, thread u
 	defer db.Close()
 
 	var t fullThreadInfo
+	t.postMap = make(map[uint64]*fullPostInfo)
 	if !inputPosts(db, &t, board, thread) {
 		http.NotFound(w, r)
 		return
@@ -72,5 +73,5 @@ func renderThread(w http.ResponseWriter, r *http.Request, board string, thread u
 	t.setBoardView(false)
 	processThread(&t, db)
 
-	execTemplate(w, "posts", &t)
+	execTemplate(w, "thread", &t)
 }

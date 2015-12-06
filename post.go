@@ -217,7 +217,7 @@ func postNewThread(w http.ResponseWriter, r *http.Request, board string) {
 	panicErr(err)
 
 	var pr = postResult{Board: board, Thread: lastInsertId, Post: lastInsertId}
-	execTemplate(w, "newthread", pr)
+	execTemplate(w, "threadcreated", pr)
 }
 
 func postNewPost(w http.ResponseWriter, r *http.Request, board string, thread uint64) {
