@@ -176,7 +176,7 @@ func acceptPost(w http.ResponseWriter, r *http.Request, p *wPostInfo, board stri
 		p.File = fname
 		p.Original = h.Filename
 
-		tname, err := makeThumb(fullname, fname, board, "", isop)
+		tname, err := makeThumb(fullname, fname, board, ext, mt, isop)
 		if err != nil {
 			fmt.Printf("error generating thumb for %s: %s\n", fname, err)
 		}

@@ -9,6 +9,8 @@ import (
 	"github.com/gographics/imagick/imagick"
 	"database/sql"
 	"strings"
+	"path/filepath"
+	"mime"
 )
 
 const (
@@ -28,25 +30,54 @@ const (
 )
 
 // extensions/mime types/aliases mapped to converters/aliases
-var thumbTypes = map[string]string {
-	"/image":     "convert/jpg",
-	"image/gif":  "/image",
-	"image/jpeg": "/image",
-	"image/png":  "/image",
-	"image/bmp":  "/image",
-	"":           "",
+var thumbConvMap = map[string]string {
+	">image":     "convert/jpg",
+	"image/gif":  ">>image",
+	"image/jpeg": ">>image",
+	"image/png":  ">>image",
+	"image/bmp":  ">>image",
+	"":           "",            // default
 }
 
+func findConverter(ext, mimetype string) (ret string) {
+	var ok bool
+	ret, ok = thumbConvMap["." + ext]
+	if !ok {
+		ret, ok = thumbConvMap[mimetype]
+		if !ok && mimetype != "" {
+			var msub string
+			if i := strings.IndexByte(mimetype, '/'); i != -1 {
+				mimetype, msub = mimetype[:i], mimetype[i+1:]
+			}
+			ret, ok = thumbConvMap[mimetype + "/*"]
+			if !ok && msub != "" {
+				ret, ok = thumbConvMap["*/" + msub]
+			}
+			if !ok {
+				ret, ok = thumbConvMap[""]
+			}
+		}
+	}
+	for len(ret) > 0 && ret[0] == '>' {
+		var s string
+		s, ok = thumbConvMap[ret[1:]]
+		if !ok {
+			fmt.Printf("warning: broken thumbConvMap chain: %s\n", ret)
+		}
+		ret = s
+	}
+	return
+}
 
-// imagick backend is damn slow for some reason.....
-const (
-	thumbDefImageMethod = "convert/jpg"
-)
+type thumbMethodType struct {
+	deftype string
+	f       func(source, destdir, dest, destext, bgcolor string) error
+}
 
-var thumbDefMethodFormat = map[string]string{
-	"imagick":    "jpg",
-	"convert":    "jpg",
-	"gm-convert": "jpg",
+var thumbMethods = map[string]thumbMethodType{
+	"imagick":    { deftype: "jpg", f: makeIMagickThumb },
+	"convert":    { deftype: "jpg", f: makeConvertThumb },
+	"gm-convert": { deftype: "jpg", f: makeGmConvertThumb },
 }
 
 func makeIMagickThumb(source, destdir, dest, destext, bgcolor string) error {
@@ -162,22 +193,17 @@ func makeGmConvertThumb(source, destdir, dest, destext, bgcolor string) error {
 	return runConvertCmd(true, source, destdir, dest, destext, bgcolor)
 }
 
-func makeThumb(fullname, fname, board, method string, isop bool) (string, error) {
+func makeThumb(fullname, fname, board, ext, mimetype string, isop bool) (string, error) {
 	var err error
 
-	// empty = automatic
+	method := findConverter(ext, mimetype)
 	if method == "" {
-		// TODO: determine default method depening on mime type/extension
-		method = thumbDefImageMethod
+		return "", nil
 	}
 
 	var format string
 	if i := strings.IndexByte(method, '/'); i != -1 {
 		method, format = method[:i], method[i+1:]
-	}
-
-	if format == "" {
-		format = thumbDefMethodFormat[method]
 	}
 
 	var bgcolor string
@@ -187,30 +213,18 @@ func makeThumb(fullname, fname, board, method string, isop bool) (string, error)
 		bgcolor = thumbBgReply
 	}
 
-	switch method {
-		case "imagick":
-			err = makeIMagickThumb(fullname, pathThumbDir(board), fname, format, bgcolor)
-			if err != nil {
-				return "", err
-			}
-			return fname + "." + format, nil
-		case "convert":
-			err = makeConvertThumb(fullname, pathThumbDir(board), fname, format, bgcolor)
-			if err != nil {
-				return "", err
-			}
-			return fname + "." + format, nil
-		case "gm-convert":
-			err = makeGmConvertThumb(fullname, pathThumbDir(board), fname, format, bgcolor)
-			if err != nil {
-				return "", err
-			}
-			return fname + "." + format, nil
-		default:
-			return "", errors.New("unknown thumb generation method")
+	m, ok := thumbMethods[method]
+	if !ok {
+		fmt.Printf("warning: method %s not found\n", method)
+		return "", nil
 	}
-}
 
+	err = m.f(fullname, pathThumbDir(board), fname, m.deftype, bgcolor)
+	if err != nil {
+		return "", err
+	}
+	return fname + "." + format, nil
+}
 
 func initImageMagick() {
 	imagick.Initialize()
@@ -271,9 +285,17 @@ func makeThumbs(method, board, file string) {
 	for i := range modthumbs {
 		var ntname string
 		fmt.Printf(">%s", modthumbs[i].file)
+
+		ext := filepath.Ext(modthumbs[i].file)
+		mt := mime.TypeByExtension(ext)
+		if mt != "" {
+			mt, _, _ = mime.ParseMediaType(mt)
+		}
+
 		st_time := time.Now().UnixNano()
-		ntname, err = makeThumb(pathSrcFile(board, modthumbs[i].file), modthumbs[i].file, board, method, modthumbs[i].id == modthumbs[i].thread)
+		ntname, err = makeThumb(pathSrcFile(board, modthumbs[i].file), modthumbs[i].file, board, ext, mt, modthumbs[i].id == modthumbs[i].thread)
 		ed_time := time.Now().UnixNano()
+
 		spent := uint64(ed_time-st_time)
 		if err == nil {
 			fmt.Printf(" done: %.3fms\n", float64(spent)/1000000.0)
