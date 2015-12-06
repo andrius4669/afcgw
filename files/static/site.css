@@ -5,12 +5,17 @@ body {
 
 .subject {
 	font-weight: bold;
-	color: #113377;
+	color: #3344EE;
 }
 
 .name {
 	font-weight: bold;
 	color: #227744;
+}
+
+.email {
+	font-weight: bold;
+	color: #113366;
 }
 
 .greentext {

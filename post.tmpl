@@ -1,9 +1,11 @@
 <div id="{{.Id}}" class="reply">
 <p style="margin-bottom:0">
 {{if .HasSubject}}<span class="subject">{{.FSubject}}</span> {{end}}
-{{if .HasEmail}}<a href="mailto:{{.FEmail}}">{{end}}
-{{if .HasName}}<span class="name">{{.FName}}</span>{{else}}<span style="color:#117743">{{.FName}}</span>{{end}}
-{{if .HasEmail}}</a>{{end}}
+{{if .HasEmail}}
+<a class="email" href="mailto:{{.FEmail}}">{{.FName}}</a>
+{{else}}
+<span class="name">{{.FName}}</span>
+{{end}}
 <time datetime="{{.FDate}}">{{.StrDate}}</time>
 <a href="/{{.Board}}/thread/{{.Thread}}#{{.Id}}">No.</a>
 {{.Id}}
