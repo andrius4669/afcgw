@@ -59,6 +59,7 @@ func utcUnixTime() int64 {
 }
 
 func postNewBoard(w http.ResponseWriter, r *http.Request) {
+
 	fmt.Fprintf(w, "supposed to create new board...")
 }
 

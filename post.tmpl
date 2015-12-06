@@ -1,8 +1,8 @@
-<div id="{{.Id}}" style="background-color:#88DDAA">
+<div id="{{.Id}}" class="reply">
 <p style="margin-bottom:0">
-{{if .HasSubject}}<span style="color:blue">{{.FSubject}}</span> {{end}}
+{{if .HasSubject}}<span class="subject">{{.FSubject}}</span> {{end}}
 {{if .HasEmail}}<a href="mailto:{{.FEmail}}">{{end}}
-{{if .HasName}}<span style="color:red">{{.FName}}</span>{{else}}<span style="color:#117743">{{.FName}}</span>{{end}}
+{{if .HasName}}<span class="name">{{.FName}}</span>{{else}}<span style="color:#117743">{{.FName}}</span>{{end}}
 {{if .HasEmail}}</a>{{end}}
 <time datetime="{{.FDate}}">{{.StrDate}}</time>
 <a href="/{{.Board}}/thread/{{.Thread}}#{{.Id}}">No.</a>
@@ -10,16 +10,15 @@
 {{range .References}} <a href="{{.Url}}">&gt;&gt;{{.Id}}</a>{{end}}
 </p>
 {{if .HasFile}}
-<div>
 <p style="margin-bottom:0; margin-top: 0">File: <a href="{{.FullOriginal}}">{{.StrOriginal}}</a></p>
 <a href="{{.FullFile}}">
-	{{if .CanThumb}}<img src="{{.FullThumb}}" alt="{{.File}}" />{{else}}{{.File}}{{end}}
+	{{if .CanThumb}}<img class="thumb" src="{{.FullThumb}}" alt="{{.File}}" />{{else}}{{.File}}{{end}}
 </a>
-</div>
 {{end}}
 {{if .HasMessage}}
-<div>
+<span class="message">
 {{.FMessage}}
-</div>
+</span>
 {{end}}
+<div style="clear: both"></div>
 </div>

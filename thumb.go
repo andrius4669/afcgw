@@ -15,7 +15,7 @@ import (
 
 const (
 	thumbBgOp    = "red"
-	thumbBgReply = "blue"
+	thumbBgReply = "#D6DAF0"
 )
 
 const (
