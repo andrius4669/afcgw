@@ -197,8 +197,8 @@ func makeThumb(fullname, fname, board, ext, mimetype string, isop bool) (string,
 	var err error
 
 	method := findConverter(ext, mimetype)
-	if method == "" {
-		return "", nil
+	if method == "" || method[0] == '/' {
+		return method, nil
 	}
 
 	var format string

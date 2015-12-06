@@ -74,17 +74,11 @@ func (p *postInfo) HasThumb() bool {
 }
 
 func (p *postInfo) FullThumb() string {
-	if p.CanThumb() {
-		if p.HasThumb() {
-			return "/" + p.Board() + "/thumb/" + p.Thumb
-		} else {
-			switch p.Thumb[1:] {
-				case "deleted":
-					return "/static/deleted.jpg"
-			}
-		}
+	if p.HasThumb() {
+		return urlThumb(p.Board(), p.Thumb)
+	} else {
+		return urlStaticThumb(p.Board(), p.Thumb)
 	}
-	return ""
 }
 
 func (p *postInfo) HasName() bool {

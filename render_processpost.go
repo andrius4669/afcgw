@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"strconv"
 	"bytes"
+	"mime"
+	"path/filepath"
+	"strings"
 )
 
 const (
@@ -13,6 +16,40 @@ const (
 
 var tagMap = map[uint]struct{ start, end []byte } {
 	tagGreentext: { []byte("<span class=\"greentext\">"), []byte("</span>") },
+}
+
+var staticThumbs = map[string]string{
+	"audio/*": "audio",
+}
+
+func findStaticThumb(ext, mimetype string) (ret string) {
+	var ok bool
+	ret, ok = staticThumbs["." + ext]
+	if !ok {
+		ret, ok = staticThumbs[mimetype]
+		if !ok && mimetype != "" {
+			var msub string
+			if i := strings.IndexByte(mimetype, '/'); i != -1 {
+				mimetype, msub = mimetype[:i], mimetype[i+1:]
+			}
+			ret, ok = staticThumbs[mimetype + "/*"]
+			if !ok && msub != "" {
+				ret, ok = staticThumbs["*/" + msub]
+			}
+			if !ok {
+				ret, ok = staticThumbs[""]
+			}
+		}
+	}
+	for len(ret) > 0 && ret[0] == '>' {
+		var s string
+		s, ok = staticThumbs[ret[1:]]
+		if !ok {
+			fmt.Printf("warning: broken staticThumbs chain: %s\n", ret)
+		}
+		ret = s
+	}
+	return
 }
 
 // check existence of cross-linking, ex: >>>/b/ >>>/pol/13548
@@ -93,7 +130,7 @@ var (
 	htmlBr   = []byte("<br />")
 )
 
-func processPost(p *fullPostInfo, db *sql.DB) {
+func processPostMessage(p *fullPostInfo, db *sql.DB) {
 	b := []byte(p.Message)
 	var w bytes.Buffer
 	src, last := 0, 0
@@ -213,6 +250,25 @@ func processPost(p *fullPostInfo, db *sql.DB) {
 		w.Write(tagMap[tagList[i]].end)
 	}
 	p.FMessage = w.String()
+}
+
+func processPostThumb(p *fullPostInfo) {
+	ext := filepath.Ext(p.File)
+	mt := mime.TypeByExtension(ext)
+	if mt != "" {
+		mt, _, _ = mime.ParseMediaType(mt)
+	}
+	t := findStaticThumb(ext, mt)
+	if t != "" {
+		p.Thumb = "/" + t
+	}
+}
+
+func processPost(p *fullPostInfo, db *sql.DB) {
+	processPostMessage(p, db)
+	if p.File != "" && p.File[0] != '/' && p.Thumb == "" {
+		processPostThumb(p)
+	}
 }
 
 func processThread(t *fullThreadInfo, db *sql.DB) {
