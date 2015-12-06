@@ -36,9 +36,9 @@
 {{range $index, $element := .Threads}}
 	<br />
 	<a href="/{{.Board}}/thread/{{$element.Id}}">#{{$element.Id}}</a>
-	{{template `bpost` $element.Op}}
+	{{template `post` $element.Op}}
 	{{range $ti, $te := $element.Replies}}
-		{{template `bpost` $te}}
+		{{template `post` $te}}
 	{{end}}
 {{end}}
 	</body>

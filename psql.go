@@ -47,14 +47,17 @@ func inputThreads(db *sql.DB, b *fullBoardInfo, board string) bool {
 		{
 			var op fullPostInfo
 			op.parent = &b.Threads[i].threadInfo
+			op.fparent = &b.Threads[i]
 			// expliclty fetch OP
 			err = db.QueryRow(fmt.Sprintf("SELECT id, name, subject, email, date, message, file, original, thumb FROM %s.posts WHERE id=$1", board), b.Threads[i].Id).
 		                     Scan(&op.Id, &op.Name, &op.Subject, &op.Email, &op.Date, &op.Message, &op.File, &op.Original, &op.Thumb)
 			if err == sql.ErrNoRows {
 				// thread without OP, it broke. TODO: remove from list
+			} else {
+				panicErr(err)
 			}
-			panicErr(err)
 			b.Threads[i].Op = op
+			b.Threads[i].postMap[op.Id] = &b.Threads[i].Op
 		}
 
 		// TODO sorting and limiting (we need to show only few posts in board view)
@@ -63,12 +66,15 @@ func inputThreads(db *sql.DB, b *fullBoardInfo, board string) bool {
 		for rows.Next() {
 			var p fullPostInfo
 			p.parent = &b.Threads[i].threadInfo
+			p.fparent = &b.Threads[i]
 			err = rows.Scan(&p.Id, &p.Name, &p.Subject, &p.Email, &p.Date, &p.Message, &p.File, &p.Original, &p.Thumb)
 			panicErr(err)
 			if p.Id == b.Threads[i].Id {
 				continue // OP already included
 			}
+			rl := len(b.Threads[i].Replies)
 			b.Threads[i].Replies = append(b.Threads[i].Replies, p)
+			b.Threads[i].postMap[p.Id] = &b.Threads[i].Replies[rl]
 		}
 	}
 
@@ -90,6 +96,7 @@ func inputPosts(db *sql.DB, t *fullThreadInfo, board string, thread uint64) bool
 	panicErr(err)
 
 	t.Op.parent = &t.threadInfo
+	t.Op.fparent = t
 	err = db.QueryRow(fmt.Sprintf("SELECT id, name, subject, email, date, message, file, original, thumb FROM %s.posts WHERE id=$1", board), thread).
 	                 Scan(&t.Op.Id, &t.Op.Name, &t.Op.Subject, &t.Op.Email, &t.Op.Date, &t.Op.Message, &t.Op.File, &t.Op.Original, &t.Op.Thumb);
 	if err == sql.ErrNoRows {
@@ -97,17 +104,22 @@ func inputPosts(db *sql.DB, t *fullThreadInfo, board string, thread uint64) bool
 	}
 	panicErr(err)
 
+	t.postMap[t.Op.Id] = &t.Op
+
 	rows, err := db.Query(fmt.Sprintf("SELECT id, name, subject, email, date, message, file, original, thumb FROM %s.posts WHERE thread=$1", board), thread)
 	panicErr(err)
 	for rows.Next() {
 		var p fullPostInfo
 		p.parent = &t.threadInfo
+		p.fparent = t
 		err = rows.Scan(&p.Id, &p.Name, &p.Subject, &p.Email, &p.Date, &p.Message, &p.File, &p.Original, &p.Thumb)
 		panicErr(err)
 		if p.Id == thread {
 			continue // OP already included
 		}
+		rl := len(t.Replies)
 		t.Replies = append(t.Replies, p)
+		t.postMap[p.Id] = &t.Replies[rl]
 	}
 
 	return true

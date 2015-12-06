@@ -27,6 +27,16 @@ const (
 	thumbGMConvert
 )
 
+// extensions/mime types/aliases mapped to converters/aliases
+var thumbTypes = map[string]string {
+	"/image":     "convert/jpg",
+	"image/gif":  "/image",
+	"image/jpeg": "/image",
+	"image/png":  "/image",
+	"image/bmp":  "/image",
+	"":           "",
+}
+
 
 // imagick backend is damn slow for some reason.....
 const (

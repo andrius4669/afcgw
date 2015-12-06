@@ -9,12 +9,15 @@ import (
 var loadedTemplates *template.Template
 
 var templateNames []struct{n, f string} = []struct{n, f string}{
-	{ "boards", "boards.tmpl" },
-	{ "threads", "threads.tmpl" },
-	{ "posts", "posts.tmpl" },
-	{ "posted", "posted.tmpl" },
-	{ "newthread", "newthread.tmpl" },
-	{ "deleted", "deleted.tmpl" },
+	{ "front",         "front.tmpl" },
+	{ "board",         "board.tmpl" },
+	{ "thread",        "thread.tmpl" },
+	{ "post",          "post.tmpl" },
+	{ "posted",        "posted.tmpl" },
+	{ "threadcreated", "threadcreated.tmpl" },
+	{ "deleted",       "deleted.tmpl" },
+	{ "boardcreated",  "boardcreated.tmpl" },
+	{ "boarddeleted",  "boarddeleted.tmpl" },
 }
 
 func parseFromFile(t *template.Template, fname string) (*template.Template, error) {
