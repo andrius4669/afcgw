@@ -280,9 +280,17 @@ func processThread(t *fullThreadInfo, db *sql.DB) {
 
 // also sets up backlinks
 func localValidatePost(p *fullPostInfo, post uint64, thread *uint64) {
-	rp, ok := p.fparent.postMap[post]
+	var rpi int
+	var ok  bool
+	rpi, ok = p.fparent.postMap[post]
+	var rp *fullPostInfo
+	if rpi == 0 {
+		rp = &p.fparent.Op
+	} else {
+		rp = &p.fparent.Replies[rpi-1]
+	}
 	if ok {
-		rp.References = append(rp.References, p.Id)
+		rp.References = append(rp.References, postReference{parent: &rp.postInfo, Tid: p.Thread(), Id: p.Id})
 		*thread = p.Thread()
 	}
 }

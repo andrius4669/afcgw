@@ -39,7 +39,7 @@ func inputThreads(db *sql.DB, b *fullBoardInfo, board string) bool {
 	for rows.Next() {
 		var t fullThreadInfo
 		t.parent = &b.boardInfo
-		t.postMap = make(map[uint64]*fullPostInfo)
+		t.postMap = make(map[uint64]int)
 		rows.Scan(&t.Id)
 		b.Threads = append(b.Threads, t)
 	}
@@ -58,7 +58,7 @@ func inputThreads(db *sql.DB, b *fullBoardInfo, board string) bool {
 				panicErr(err)
 			}
 			b.Threads[i].Op = op
-			b.Threads[i].postMap[op.Id] = &b.Threads[i].Op
+			b.Threads[i].postMap[op.Id] = 0
 		}
 
 		// TODO sorting and limiting (we need to show only few posts in board view)
@@ -73,9 +73,8 @@ func inputThreads(db *sql.DB, b *fullBoardInfo, board string) bool {
 			if p.Id == b.Threads[i].Id {
 				continue // OP already included
 			}
-			rl := len(b.Threads[i].Replies)
 			b.Threads[i].Replies = append(b.Threads[i].Replies, p)
-			b.Threads[i].postMap[p.Id] = &b.Threads[i].Replies[rl]
+			b.Threads[i].postMap[p.Id] = len(b.Threads[i].Replies)
 		}
 	}
 
@@ -105,7 +104,7 @@ func inputPosts(db *sql.DB, t *fullThreadInfo, board string, thread uint64) bool
 	}
 	panicErr(err)
 
-	t.postMap[t.Op.Id] = &t.Op
+	t.postMap[t.Op.Id] = 0
 
 	rows, err := db.Query(fmt.Sprintf("SELECT id, name, subject, email, date, message, file, original, thumb FROM %s.posts WHERE thread=$1", board), thread)
 	panicErr(err)
@@ -118,9 +117,8 @@ func inputPosts(db *sql.DB, t *fullThreadInfo, board string, thread uint64) bool
 		if p.Id == thread {
 			continue // OP already included
 		}
-		rl := len(t.Replies)
 		t.Replies = append(t.Replies, p)
-		t.postMap[p.Id] = &t.Replies[rl]
+		t.postMap[p.Id] = len(t.Replies)
 	}
 
 	return true

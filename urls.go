@@ -23,3 +23,7 @@ func urlStaticThumb(board, s string) string {
 func urlThumb(board, s string) string {
 	return "/" + board + "/thumb/" + s
 }
+
+func urlPost(board string, thread, post uint64) string {
+	return fmt.Sprintf("/%s/thread/%d#%d", board, thread, post)
+}

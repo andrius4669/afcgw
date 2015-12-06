@@ -24,3 +24,11 @@ func (t *threadInfo) setBoardView(bw bool) {
 func (t *threadInfo) IsBoardView() bool {
 	return t.parent.IsBoardView()
 }
+
+
+type fullThreadInfo struct {
+	threadInfo
+	Op      fullPostInfo
+	Replies []fullPostInfo
+	postMap map[uint64]int
+}

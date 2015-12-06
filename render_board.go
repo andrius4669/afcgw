@@ -24,3 +24,9 @@ func (b *boardInfo) setBoardView(bw bool) {
 func (b *boardInfo) IsBoardView() bool {
 	return b.boardView
 }
+
+
+type fullBoardInfo struct {
+	boardInfo
+	Threads []fullThreadInfo
+}

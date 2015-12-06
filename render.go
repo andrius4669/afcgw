@@ -4,26 +4,6 @@ import (
 	"net/http"
 )
 
-
-type fullPostInfo struct {
-	postInfo
-	FMessage   string
-	fparent    *fullThreadInfo
-	References []uint64 // posts IDs who refered to this post
-}
-
-type fullThreadInfo struct {
-	threadInfo
-	Op      fullPostInfo
-	Replies []fullPostInfo
-	postMap map[uint64]*fullPostInfo
-}
-
-type fullBoardInfo struct {
-	boardInfo
-	Threads []fullThreadInfo
-}
-
 // front page info
 type fullFrontData struct {
 	// TODO: add sth moar
@@ -64,7 +44,7 @@ func renderThread(w http.ResponseWriter, r *http.Request, board string, thread u
 	defer db.Close()
 
 	var t fullThreadInfo
-	t.postMap = make(map[uint64]*fullPostInfo)
+	t.postMap = make(map[uint64]int)
 	if !inputPosts(db, &t, board, thread) {
 		http.NotFound(w, r)
 		return
