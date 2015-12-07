@@ -195,10 +195,10 @@ func processPostMessage(p *fullPostInfo, db *sql.DB) {
 			} else if checkLinkPattern(b, src, &end, &post) {
 				pboard := p.Board()
 				var pthread uint64
-				// local replies may be limited for board view, also we don't need backlinks
-				if !p.IsBoardView() {
-					localValidatePost(p, post, &pthread)
-				}
+				// CAUTION: local replies may be limited for board view
+				// but we can skip this info in template if we find missing information
+				// to be worse than no information at all
+				localValidatePost(p, post, &pthread)
 				if pthread == 0 {
 					sqlValidatePost(db, pboard, post, &pthread)
 				}

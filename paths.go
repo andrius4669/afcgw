@@ -2,6 +2,14 @@ package main
 
 import "path"
 
+func pathBaseDir() string {
+	return "files"
+}
+
+func pathBoardDir(board string) string {
+	return "files/" + board
+}
+
 // src - where received original files are stored
 func pathSrcDir(board string) string {
 	return "files/" + board + "/src"

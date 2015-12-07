@@ -11,6 +11,7 @@ import (
 	"time"
 	"io"
 	"strconv"
+	"regexp"
 )
 
 const (
@@ -56,6 +57,104 @@ func uniqueTimestamp() int64 {
 
 func utcUnixTime() int64 {
 	return time.Now().UTC().Unix()
+}
+
+type newBoardInfo struct {
+	Name, Desc, Info string
+}
+
+func initDatabase(db *sql.DB) {
+	err := os.MkdirAll(pathBaseDir(), os.ModePerm)
+	panicErr(err)
+	err = os.MkdirAll(pathStaticDir(""), os.ModePerm)
+	panicErr(err)
+
+	create_q := `CREATE TABLE IF NOT EXISTS boards (
+		name        text PRIMARY KEY,
+		description text NOT NULL,
+		info        text NOT NULL
+	)`
+	stmt, err := db.Prepare(create_q)
+	panicErr(err)
+	_, err = stmt.Exec()
+	panicErr(err)
+
+	create_q = `CREATE TABLE IF NOT EXISTS ip_bans (
+		ip_addr inet PRIMARY KEY,
+		reason  text NOT NULL
+	)`
+	stmt, err = db.Prepare(create_q)
+	panicErr(err)
+	_, err = stmt.Exec()
+	panicErr(err)
+
+	// only these tables so far...
+}
+
+func validBoardName(name string) bool {
+	ok, _ := regexp.MatchString("^[a-z0-9]{1,10}$", name)
+	return ok
+}
+
+func makeNewBoard(db *sql.DB, dbi *newBoardInfo) {
+	// prepare schema
+	stmt, err := db.Prepare("CREATE SCHEMA IF NOT EXISTS $1")
+	panicErr(err)
+	_, err = stmt.Exec(dbi.Name) // result isn't very meaningful for us, we check err regardless
+	panicErr(err)
+
+	// prepare tables
+	create_q := `CREATE TABLE IF NOT EXISTS %s.posts (
+		id       bigserial PRIMARY KEY,
+		thread   bigint,
+		name     text      NOT NULL,
+		trip     text      NOT NULL,
+		subject  text      NOT NULL,
+		email    text      NOT NULL,
+		date     bigint    NOT NULL,
+		message  text      NOT NULL,
+		file     text      NOT NULL,
+		original text      NOT NULL,
+		thumb    text      NOT NULL,
+		ip_addr  inet
+	)`
+	stmt, err = db.Prepare(fmt.Sprintf(create_q, dbi.Name))
+	panicErr(err)
+	_, err = stmt.Exec()
+	panicErr(err)
+
+	create_q = `CREATE INDEX ON %s.posts (thread)`
+	stmt, err = db.Prepare(fmt.Sprintf(create_q, dbi.Name))
+	panicErr(err)
+	_, err = stmt.Exec()
+	panicErr(err)
+
+	create_q = `CREATE TABLE IF NOT EXISTS %s.threads (
+		id   bigint PRIMARY KEY,
+		bump bigint NOT NULL
+	)`
+	stmt, err = db.Prepare(fmt.Sprintf(create_q, dbi.Name))
+	panicErr(err)
+	_, err = stmt.Exec()
+	panicErr(err)
+
+	// create dir tree
+	err = os.MkdirAll(pathBoardDir(dbi.Name), os.ModePerm)
+	panicErr(err)
+	err = os.MkdirAll(pathSrcDir(dbi.Name), os.ModePerm)
+	panicErr(err)
+	err = os.MkdirAll(pathThumbDir(dbi.Name), os.ModePerm)
+	panicErr(err)
+	err = os.MkdirAll(pathStaticDir(dbi.Name), os.ModePerm)
+	panicErr(err)
+
+	// insert to board list
+	create_q = `INSERT INTO boards (name, description, info) VALUES ($1, $2, $3)`
+	panicErr(err)
+	_, err = stmt.Exec(dbi.Name, dbi.Desc, dbi.Info)
+	panicErr(err)
+
+	// we're done
 }
 
 func postNewBoard(w http.ResponseWriter, r *http.Request) {
