@@ -88,12 +88,40 @@ func initDatabase(db *sql.DB) {
 	_, err = stmt.Exec()
 	panicErr(err)
 
+	create_q = `CREATE TABLE IF NOT EXISTS admins (
+		username text PRIMARY KEY,
+		password text NOT NULL
+	)`
+	stmt, err = db.Prepare(create_q)
+	panicErr(err)
+	_, err = stmt.Exec()
+	panicErr(err)
+
 	// only these tables so far...
+}
+
+func initDbCmd() {
+	fmt.Print("initialising database...")
+
+	db := openSQL()
+	defer db.Close()
+
+	initDatabase(db)
+
+	fmt.Print(" done.\n")
 }
 
 func validBoardName(name string) bool {
 	ok, _ := regexp.MatchString("^[a-z0-9]{1,10}$", name)
-	return ok
+	if !ok {
+		return false
+	}
+	switch name {
+		case "static":
+		case "mod":
+			return false
+	}
+	return true
 }
 
 func makeNewBoard(db *sql.DB, dbi *newBoardInfo) {
@@ -150,6 +178,7 @@ func makeNewBoard(db *sql.DB, dbi *newBoardInfo) {
 
 	// insert to board list
 	create_q = `INSERT INTO boards (name, description, info) VALUES ($1, $2, $3)`
+	stmt, err = db.Prepare(create_q)
 	panicErr(err)
 	_, err = stmt.Exec(dbi.Name, dbi.Desc, dbi.Info)
 	panicErr(err)
@@ -157,9 +186,82 @@ func makeNewBoard(db *sql.DB, dbi *newBoardInfo) {
 	// we're done
 }
 
-func postNewBoard(w http.ResponseWriter, r *http.Request) {
+func deleteBoard(db *sql.DB, name string) bool {
+	var bname string
+	err := db.QueryRow("DELETE FROM boards WHERE name=$1 RETURNING name", name).Scan(&bname)
+	if err == sql.ErrNoRows {
+		// already deleted or invalid name, we have nothing to do there
+		return false
+	}
+	panicErr(err)
 
-	fmt.Fprintf(w, "supposed to create new board...")
+	stmt, err := db.Prepare("DROP SCHEMA IF EXISTS $1")
+	panicErr(err)
+	_, err = stmt.Exec(bname)
+	panicErr(err)
+
+	os.RemoveAll(pathBoardDir(name))
+
+	return true
+}
+
+func postNewBoard(w http.ResponseWriter, r *http.Request) {
+	var nbi newBoardInfo
+
+	r.ParseForm()
+
+	bname, ok := r.Form["name"]
+	if !ok {
+		http.Error(w, "400 bad request: no name field", 400)
+		return
+	}
+	nbi.Name = bname[0]
+	if !validBoardName(nbi.Name) {
+		http.Error(w, "400 bad request: invalid board name", 400)
+		return
+	}
+
+	bdesc, ok := r.Form["desc"]
+	if !ok {
+		http.Error(w, "400 bad request: no desc field", 400)
+		return
+	}
+	nbi.Desc = bdesc[0]
+
+	binfo, ok := r.Form["info"]
+	if !ok {
+		http.Error(w, "400 bad request: no info field", 400)
+		return
+	}
+	nbi.Info = binfo[0]
+
+	db := openSQL()
+	defer db.Close()
+
+	makeNewBoard(db, &nbi)
+	execTemplate(w, "boardcreated", &nbi)
+}
+
+func postDelBoard(w http.ResponseWriter, r *http.Request) {
+	var board string
+
+	bname, ok := r.Form["name"]
+	if !ok {
+		http.Error(w, "400 bad request: no name field", 400)
+		return
+	}
+	board = bname[0]
+
+	db := openSQL()
+	defer db.Close()
+
+	ok = deleteBoard(db, board)
+	if !ok {
+		http.Error(w, "500 internal server error: board deletion failed", 500)
+		return
+	}
+
+	execTemplate(w, "boarddeleted", &board)
 }
 
 // postinfo for writing

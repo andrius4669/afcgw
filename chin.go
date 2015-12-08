@@ -209,6 +209,8 @@ func main() {
 					board = os.Args[3]
 				}
 				makeThumbs(method, board, file)
+			case "initdb":
+				initDbCmd()
 			default:
 				fmt.Printf("unknown command: %s\n", cmd)
 		}
