@@ -7,8 +7,8 @@ import (
 
 // #cgo LDFLAGS: -lcrypt
 // #define _XOPEN_SOURCE
-// #include <crypt.h>
 // #include <stdlib.h>
+// #include <unistd.h>
 import "C"
 
 var crypt_m sync.Mutex
