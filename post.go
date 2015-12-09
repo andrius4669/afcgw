@@ -410,7 +410,7 @@ func postNewThread(w http.ResponseWriter, r *http.Request, board string) {
 	nowtime := utcUnixTime()
 
 	var lastInsertId uint64
-	err = db.QueryRow(fmt.Sprintf("INSERT INTO %s.posts (name, trip, subject, email, date, message, file, original, thumb) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id;", board),
+	err = db.QueryRow(fmt.Sprintf("INSERT INTO %s.posts (name, trip, subject, email, date, message, file, original, thumb) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id;", board),
                       p.Name, p.Trip, p.Subject, p.Email, nowtime, p.Message, p.File, p.Original, p.Thumb).Scan(&lastInsertId)
 	panicErr(err)
 
@@ -452,7 +452,7 @@ func postNewPost(w http.ResponseWriter, r *http.Request, board string, thread ui
 	nowtime := utcUnixTime()
 
 	var lastInsertId uint64
-	err = db.QueryRow(fmt.Sprintf("INSERT INTO %s.posts (thread, name, trip, subject, email, date, message, file, original, thumb) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id;", board),
+	err = db.QueryRow(fmt.Sprintf("INSERT INTO %s.posts (thread, name, trip, subject, email, date, message, file, original, thumb) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id;", board),
                       thread, p.Name, p.Trip, p.Subject, p.Email, nowtime, p.Message, p.File, p.Original, p.Thumb).Scan(&lastInsertId)
 	panicErr(err)
 
