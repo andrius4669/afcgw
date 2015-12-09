@@ -144,7 +144,7 @@ func (HandlerType) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if nfunc == "" || nfunc == "/" {
-			http.Error(w, "501 not implemented", 501)
+			http.NotFound(w, r)
 			return
 		}
 		nfunc = nfunc[1:]
@@ -153,7 +153,7 @@ func (HandlerType) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			nfunc, tfunc = nfunc[:i], nfunc[i:]
 		}
 		if !(nfunc == "thread" || nfunc == "mod") || tfunc == "" || tfunc == "/" {
-			http.NotFound(w, r)
+			http.Error(w, "501 not implemented", 501)
 			return
 		}
 		if tfunc == "/new" {
