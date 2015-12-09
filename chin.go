@@ -152,7 +152,7 @@ func (HandlerType) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if i := strings.IndexByte(nfunc, '/'); i != -1 {
 			nfunc, tfunc = nfunc[:i], nfunc[i:]
 		}
-		if nfunc != "thread" || tfunc == "" || tfunc == "/" || nfunc != "mod" {
+		if !(nfunc == "thread" || nfunc == "mod") || tfunc == "" || tfunc == "/" {
 			http.NotFound(w, r)
 			return
 		}
@@ -164,7 +164,7 @@ func (HandlerType) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			if i := strings.IndexByte(tfunc, '/'); i != -1 {
 				tfunc, ttfunc = tfunc[:i], tfunc[i:]
 			}
-			if ttfunc != "/post" || ttfunc != "/deleted"  {
+			if !(ttfunc == "/post" || ttfunc == "/deleted")  {
 				http.NotFound(w, r)
 				return
 			}
