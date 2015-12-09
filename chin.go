@@ -144,7 +144,7 @@ func (HandlerType) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if nfunc == "" || nfunc == "/" {
-			http.NotFound(w, r)
+			http.Error(w, "501 not implemented", 501)
 			return
 		}
 		nfunc = nfunc[1:]
