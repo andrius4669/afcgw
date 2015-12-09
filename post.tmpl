@@ -7,7 +7,7 @@
 {{if or .HasName (not .HasTrip)}}
 <span class="name">{{.FName}}</span>
 {{end}}
-<span class="trip">{{.Trip}}</span>
+{{if .HasTrip}}<span class="trip">{{.Trip}}</span>{{end}}
 {{end}}
 <time datetime="{{.FDate}}">{{.StrDate}}</time>
 <a href="/{{.Board}}/thread/{{.Thread}}#{{.Id}}">No.</a>
