@@ -13,6 +13,11 @@
 <a href="/{{.Board}}/thread/{{.Thread}}#{{.Id}}">No.</a>
 {{.Id}}
 {{range .References}} <a href="{{.Url}}">&gt;&gt;{{.Id}}</a>{{end}}
+{{if .IsMod}}
+<form action="/{{.Board}}/thread/{{.Thread}}#{{.Id}}/deleted" method="post" enctype="multipart/form-data">
+<button type="submit" name="id" value="{{.Id}}">delete</button>
+</form>
+{{end}}
 </p>
 {{if .HasFile}}
 <p style="margin-bottom:0; margin-top: 0">File: <a href="{{.FullOriginal}}">{{.StrOriginal}}</a></p>
