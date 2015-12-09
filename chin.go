@@ -165,7 +165,7 @@ func (HandlerType) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				tfunc, ttfunc = tfunc[:i], tfunc[i:]
 			}
 			if !(ttfunc == "/post" || ttfunc == "/deleted")  {
-				http.Error(w, "501 not implemented", 501)
+				http.Error(w, "501 not implemented " + ttfunc, 501)
 				return
 			}
 			if ttfunc == "/post" {
