@@ -164,7 +164,7 @@ func (HandlerType) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			if i := strings.IndexByte(tfunc, '/'); i != -1 {
 				tfunc, ttfunc = tfunc[:i], tfunc[i:]
 			}
-			if ttfunc != "/post" {
+			if ttfunc != "/post" || ttfunc != "/deleted"  {
 				http.NotFound(w, r)
 				return
 			}
@@ -173,7 +173,12 @@ func (HandlerType) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				http.NotFound(w, r)
 				return
 			}
-			postNewPost(w, r, board, n)
+			if ttfunc == "/post" {
+				postNewPost(w, r, board, n)
+			}
+			if ttfunc == "/deleted" {
+				postDelete(w, r, board)
+			}
 		}
 	} else {
 		http.Error(w, "501 not implemented", 501)
