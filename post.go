@@ -267,6 +267,7 @@ func postDelBoard(w http.ResponseWriter, r *http.Request) {
 // postinfo for writing
 type wPostInfo struct {
 	Name     string
+	Trip     string
 	Subject  string
 	Email    string
 	Message  string
@@ -312,7 +313,7 @@ func acceptPost(w http.ResponseWriter, r *http.Request, p *wPostInfo, board stri
 		http.Error(w, "400 bad request: has no name field", 400)
 		return false
 	}
-	p.Name = pname[0]
+	p.Name, p.Trip = MakeTrip(pname[0])
 
 	psubject, ok := r.Form["subject"]
 	if !ok {
@@ -409,8 +410,8 @@ func postNewThread(w http.ResponseWriter, r *http.Request, board string) {
 	nowtime := utcUnixTime()
 
 	var lastInsertId uint64
-	err = db.QueryRow(fmt.Sprintf("INSERT INTO %s.posts (name, subject, email, date, message, file, original, thumb) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id;", board),
-                      p.Name, p.Subject, p.Email, nowtime, p.Message, p.File, p.Original, p.Thumb).Scan(&lastInsertId)
+	err = db.QueryRow(fmt.Sprintf("INSERT INTO %s.posts (name, trip, subject, email, date, message, file, original, thumb) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id;", board),
+                      p.Name, p.Trip, p.Subject, p.Email, nowtime, p.Message, p.File, p.Original, p.Thumb).Scan(&lastInsertId)
 	panicErr(err)
 
 	stmt, err := db.Prepare(fmt.Sprintf("INSERT INTO %s.threads (id, bump) VALUES ($1, $2)", board))
@@ -451,8 +452,8 @@ func postNewPost(w http.ResponseWriter, r *http.Request, board string, thread ui
 	nowtime := utcUnixTime()
 
 	var lastInsertId uint64
-	err = db.QueryRow(fmt.Sprintf("INSERT INTO %s.posts (thread, name, subject, email, date, message, file, original, thumb) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id;", board),
-                      thread, p.Name, p.Subject, p.Email, nowtime, p.Message, p.File, p.Original, p.Thumb).Scan(&lastInsertId)
+	err = db.QueryRow(fmt.Sprintf("INSERT INTO %s.posts (thread, name, trip, subject, email, date, message, file, original, thumb) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id;", board),
+                      thread, p.Name, p.Trip, p.Subject, p.Email, nowtime, p.Message, p.File, p.Original, p.Thumb).Scan(&lastInsertId)
 	panicErr(err)
 
 	stmt, err := db.Prepare(fmt.Sprintf("UPDATE %s.threads SET bump = $1 WHERE id = $2", board))

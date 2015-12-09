@@ -12,6 +12,7 @@ type postInfo struct {
 	parent   *threadInfo
 	Id       uint64
 	Name     string
+	Trip     string
 	Subject  string
 	Email    string
 	Date     int64
@@ -90,6 +91,10 @@ func (p *postInfo) FName() string {
 		return template.HTMLEscapeString(p.Name)
 	}
 	return "Anonymous"
+}
+
+func (p *postInfo) HasTrip() bool {
+	return p.Trip != ""
 }
 
 func (p *postInfo) HasSubject() bool {
