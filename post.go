@@ -530,7 +530,7 @@ func removePost(w http.ResponseWriter, r *http.Request, pr *postResult, board st
 
 func postDelete(w http.ResponseWriter, r *http.Request, board string) {
 	r.ParseForm()
-	post, ok := r.Form["id"]
+	post, ok := r.FormValue("id")
 	if !ok {
 		http.Error(w, "400 bad request: no post id specified", 400)
 		return
