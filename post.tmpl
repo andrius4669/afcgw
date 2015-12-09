@@ -15,7 +15,7 @@
 {{range .References}} <a href="{{.Url}}">&gt;&gt;{{.Id}}</a>{{end}}
 {{if .IsMod}}
 <form action="/{{.Board}}/mod/{{.Thread}}/deleted" method="post" enctype="multipart/form-data">
-<input type="hidden" type="text" name="id" value="{{.Id}}"/>
+<input type="hidden" name="id" value="{{.Id}}"/>
 <button type="submit">delete</button>
 </form>
 {{end}}
