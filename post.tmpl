@@ -2,9 +2,12 @@
 <p style="margin-bottom:0">
 {{if .HasSubject}}<span class="subject">{{.FSubject}}</span> {{end}}
 {{if .HasEmail}}
-<a class="email" href="mailto:{{.FEmail}}">{{.FName}}</a>
+<a class="email" href="mailto:{{.FEmail}}">{{.FName}}{{.Trip}}</a>
 {{else}}
+{{if or .HasName (not .HasTrip)}}
 <span class="name">{{.FName}}</span>
+{{end}}
+<span class="trip">{{.Trip}}</span>
 {{end}}
 <time datetime="{{.FDate}}">{{.StrDate}}</time>
 <a href="/{{.Board}}/thread/{{.Thread}}#{{.Id}}">No.</a>
