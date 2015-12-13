@@ -70,9 +70,11 @@ func initDatabase(db *sql.DB) {
 	panicErr(err)
 
 	create_q := `CREATE TABLE IF NOT EXISTS boards (
-		name        text PRIMARY KEY,
-		description text NOT NULL,
-		info        text NOT NULL
+		name        text    PRIMARY KEY,
+		description text    NOT NULL,
+		info        text    NOT NULL,
+		maxthreads  integer,
+		bumplimit   integer
 	)`
 	stmt, err := db.Prepare(create_q)
 	panicErr(err)
@@ -158,8 +160,9 @@ func makeNewBoard(db *sql.DB, dbi *newBoardInfo) {
 	panicErr(err)
 
 	create_q = `CREATE TABLE IF NOT EXISTS %s.threads (
-		id   bigint PRIMARY KEY,
-		bump bigint NOT NULL
+		id      bigint  PRIMARY KEY,
+		bump    bigint  NOT NULL,
+		bumpnum integer NOT NULL
 	)`
 	stmt, err = db.Prepare(fmt.Sprintf(create_q, dbi.Name))
 	panicErr(err)
@@ -290,15 +293,6 @@ func (r *postResult) IsThread() bool {
 	return r.Thread == r.Post
 }
 
-// deletes file
-func delFile(board, fname string) {
-	os.Remove(pathSrcFile(board, fname))
-}
-
-func delThumb(board, tname string) {
-	os.Remove(pathThumbFile(board, tname))
-}
-
 func acceptPost(w http.ResponseWriter, r *http.Request, p *wPostInfo, board string, isop bool) bool {
 	var err error
 
@@ -395,8 +389,9 @@ func postNewThread(w http.ResponseWriter, r *http.Request, board string) {
 	db := openSQL()
 	defer db.Close()
 
-	var bname string
-	err := db.QueryRow("SELECT name FROM boards WHERE name=$1", board).Scan(&bname)
+	var bname      string
+	var maxthreads sql.NullInt64
+	err := db.QueryRow("SELECT name, maxthreads FROM boards WHERE name=$1", board).Scan(&bname, &maxthreads)
 	if err == sql.ErrNoRows {
 		http.NotFound(w, r)
 		return
@@ -414,13 +409,45 @@ func postNewThread(w http.ResponseWriter, r *http.Request, board string) {
                       p.Name, p.Trip, p.Subject, p.Email, nowtime, p.Message, p.File, p.Original, p.Thumb).Scan(&lastInsertId)
 	panicErr(err)
 
-	stmt, err := db.Prepare(fmt.Sprintf("INSERT INTO %s.threads (id, bump) VALUES ($1, $2)", board))
+	stmt, err := db.Prepare(fmt.Sprintf("INSERT INTO %s.threads (id, bump, bumpnum) VALUES ($1, $2, $3)", board))
 	panicErr(err)
-	_, err = stmt.Exec(lastInsertId, nowtime) // result isn't very meaningful for us, we check err regardless
+	_, err = stmt.Exec(lastInsertId, nowtime, 0)
 	panicErr(err)
+
+	// prune excess threads if limit exists
+	if maxthreads.Valid && maxthreads.Int64 != 0 {
+		//var numrows uint64
+		//err = db.QueryRow(fmt.Sprintf("SELECT COUNT(*) FROM %s.threads", board)).Scan(&numrows)
+		//panicErr(err)
+		delq := `
+			DELETE FROM %s.threads
+			WHERE id IN (
+				SELECT id FROM %s.threads
+				ORDER BY bump DESC
+				OFFSET $1)
+			RETURNING id`
+		rows, err := db.Query(fmt.Sprintf(delq, board, board), uint64(maxthreads.Int64))
+		panicErr(err)
+		for rows.Next() {
+			var tid uint64
+			err = rows.Scan(&tid)
+			panicErr(err)
+			prunePosts(db, board, tid)
+		}
+	}
 
 	var pr = postResult{Board: board, Thread: lastInsertId, Post: lastInsertId}
 	execTemplate(w, "threadcreated", pr)
+}
+
+func bumpThread(db *sql.DB, board string, thread uint64, t int64) {
+	q := `UPDATE %s.threads
+SET bump = $1, bumpnum = bumpnum + 1
+WHERE id = $2`
+	stmt, err := db.Prepare(fmt.Sprintf(q, board))
+	panicErr(err)
+	_, err = stmt.Exec(t, thread)
+	panicErr(err)
 }
 
 func postNewPost(w http.ResponseWriter, r *http.Request, board string, thread uint64) {
@@ -429,16 +456,16 @@ func postNewPost(w http.ResponseWriter, r *http.Request, board string, thread ui
 	db := openSQL()
 	defer db.Close()
 
-	var bname string
-	err := db.QueryRow("SELECT name FROM boards WHERE name=$1", board).Scan(&bname)
+	var bumplimit sql.NullInt64
+	err := db.QueryRow("SELECT bumplimit FROM boards WHERE name=$1", board).Scan(&bumplimit)
 	if err == sql.ErrNoRows {
 		http.NotFound(w, r)
 		return
 	}
 	panicErr(err)
 
-	var bid uint64
-	err = db.QueryRow(fmt.Sprintf("SELECT id FROM %s.threads WHERE id=$1", board), thread).Scan(&bid)
+	var bumpnum uint32
+	err = db.QueryRow(fmt.Sprintf("SELECT bumpnum FROM %s.threads WHERE id=$1", board), thread).Scan(&bumpnum)
 	if err == sql.ErrNoRows {
 		http.NotFound(w, r)
 		return
@@ -456,35 +483,16 @@ func postNewPost(w http.ResponseWriter, r *http.Request, board string, thread ui
                       thread, p.Name, p.Trip, p.Subject, p.Email, nowtime, p.Message, p.File, p.Original, p.Thumb).Scan(&lastInsertId)
 	panicErr(err)
 
-	stmt, err := db.Prepare(fmt.Sprintf("UPDATE %s.threads SET bump = $1 WHERE id = $2", board))
-	panicErr(err)
-	_, err = stmt.Exec(nowtime, thread)
-	panicErr(err)
+	// TODO: check for sage
+	if !bumplimit.Valid || bumpnum < uint32(bumplimit.Int64) {
+		bumpThread(db, board, thread, nowtime)
+	}
 
 	var pr = postResult{Board: board, Thread: thread, Post: lastInsertId}
 	execTemplate(w, "posted", pr)
 }
 
-func pruneThread(db *sql.DB, board string, thread uint64) {
-	stmt, err := db.Prepare(fmt.Sprintf("DELETE FROM %s.threads WHERE id=$1", board))
-	panicErr(err)
-	_, err = stmt.Exec(thread) // result isn't very meaningful for us, but we check err regardless
-	panicErr(err)
 
-	rows, err := db.Query(fmt.Sprintf("DELETE FROM %s.posts WHERE thread=$1 RETURNING file, thumb", board), thread)
-	panicErr(err)
-	for rows.Next() {
-		var fname, tname sql.NullString
-		err = rows.Scan(&fname, &tname)
-		panicErr(err)
-		if fname.Valid && fname.String != "" {
-			delFile(board, fname.String)
-		}
-		if tname.Valid && tname.String != "" && tname.String[0] != '.' {
-			delThumb(board, tname.String)
-		}
-	}
-}
 
 func removePost(w http.ResponseWriter, r *http.Request, pr *postResult, board string, post uint64) bool {
 	db := openSQL()
@@ -510,17 +518,12 @@ func removePost(w http.ResponseWriter, r *http.Request, pr *postResult, board st
 	}
 	panicErr(err)
 
-	if fname.Valid && fname.String != "" {
-		delFile(board, fname.String)
-	}
-	if tname.Valid && tname.String != "" && tname.String[0] != '.' {
-		delThumb(board, tname.String)
-	}
+	pruneFiles(board, fname.String, tname.String)
 
 	// if it was OP, prune whole thread
-	if !thread.Valid || uint64(thread.Int64) == post {
+	if !thread.Valid || thread.Int64 == 0 || uint64(thread.Int64) == post {
 		pr.Thread = post
-		pruneThread(db, board, post)
+		pruneThreadReplies(db, board, post)
 	} else {
 		pr.Thread = uint64(thread.Int64)
 	}

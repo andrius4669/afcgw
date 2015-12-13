@@ -71,7 +71,7 @@ func inputThreads(db *sql.DB, b *fullBoardInfo, board string) bool {
 			err = rows.Scan(&p.Id, &p.Name, &p.Trip, &p.Subject, &p.Email, &p.Date, &p.Message, &p.File, &p.Original, &p.Thumb)
 			panicErr(err)
 			if p.Id == b.Threads[i].Id {
-				continue // OP already included
+				continue // OP already included -- shouldn't normally happen
 			}
 			b.Threads[i].Replies = append(b.Threads[i].Replies, p)
 			b.Threads[i].postMap[p.Id] = len(b.Threads[i].Replies)
