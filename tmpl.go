@@ -1,23 +1,23 @@
 package main
 
 import (
-	"text/template"
-	"io/ioutil"
 	"io"
+	"io/ioutil"
+	"text/template"
 )
 
 var loadedTemplates *template.Template
 
-var templateNames []struct{n, f string} = []struct{n, f string}{
-	{ "front",         "front.tmpl" },
-	{ "board",         "board.tmpl" },
-	{ "thread",        "thread.tmpl" },
-	{ "post",          "post.tmpl" },
-	{ "posted",        "posted.tmpl" },
-	{ "threadcreated", "threadcreated.tmpl" },
-	{ "deleted",       "deleted.tmpl" },
-	{ "boardcreated",  "boardcreated.tmpl" },
-	{ "boarddeleted",  "boarddeleted.tmpl" },
+var templateNames []struct{ n, f string } = []struct{ n, f string }{
+	{"front", "front.tmpl"},
+	{"board", "board.tmpl"},
+	{"thread", "thread.tmpl"},
+	{"post", "post.tmpl"},
+	{"posted", "posted.tmpl"},
+	{"threadcreated", "threadcreated.tmpl"},
+	{"deleted", "deleted.tmpl"},
+	{"boardcreated", "boardcreated.tmpl"},
+	{"boarddeleted", "boarddeleted.tmpl"},
 }
 
 func parseFromFile(t *template.Template, fname string) (*template.Template, error) {

@@ -1,12 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"database/sql"
 	"fmt"
-	"strconv"
-	"bytes"
 	"mime"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
@@ -14,8 +14,8 @@ const (
 	tagGreentext = iota
 )
 
-var tagMap = map[uint]struct{ start, end []byte } {
-	tagGreentext: { []byte("<span class=\"greentext\">"), []byte("</span>") },
+var tagMap = map[uint]struct{ start, end []byte }{
+	tagGreentext: {[]byte("<span class=\"greentext\">"), []byte("</span>")},
 }
 
 var staticThumbs = map[string]string{
@@ -24,7 +24,7 @@ var staticThumbs = map[string]string{
 
 func findStaticThumb(ext, mimetype string) (ret string) {
 	var ok bool
-	ret, ok = staticThumbs["." + ext]
+	ret, ok = staticThumbs["."+ext]
 	if !ok {
 		ret, ok = staticThumbs[mimetype]
 		if !ok && mimetype != "" {
@@ -32,9 +32,9 @@ func findStaticThumb(ext, mimetype string) (ret string) {
 			if i := strings.IndexByte(mimetype, '/'); i != -1 {
 				mimetype, msub = mimetype[:i], mimetype[i+1:]
 			}
-			ret, ok = staticThumbs[mimetype + "/*"]
+			ret, ok = staticThumbs[mimetype+"/*"]
 			if !ok && msub != "" {
-				ret, ok = staticThumbs["*/" + msub]
+				ret, ok = staticThumbs["*/"+msub]
 			}
 			if !ok {
 				ret, ok = staticThumbs[""]
@@ -55,13 +55,13 @@ func findStaticThumb(ext, mimetype string) (ret string) {
 // check existence of cross-linking, ex: >>>/b/ >>>/pol/13548
 func checkCrossPattern(b []byte, src int, end *int, board *string, post *uint64) bool {
 	// shortest crosslink: >>>/a/ - 6 chars
-	if src + 6 > len(b) || b[src+1] != '>' || b[src+2] != '>' || b[src+3] != '/' {
+	if src+6 > len(b) || b[src+1] != '>' || b[src+2] != '>' || b[src+3] != '/' {
 		return false
 	}
 
 	src += 4
 	idx := src
-	for ;; idx++ {
+	for ; ; idx++ {
 		if idx >= len(b) {
 			return false
 		}
@@ -78,9 +78,9 @@ func checkCrossPattern(b []byte, src int, end *int, board *string, post *uint64)
 	}
 	// can only break out with syntaxically correct board name
 	*board = string(b[src:idx])
-	idx ++
+	idx++
 	src = idx
-	for ;; idx++ {
+	for ; ; idx++ {
 		if idx >= len(b) || b[idx] < '0' || b[idx] > '9' {
 			break
 		}
@@ -98,13 +98,13 @@ func checkCrossPattern(b []byte, src int, end *int, board *string, post *uint64)
 
 func checkLinkPattern(b []byte, src int, end *int, post *uint64) bool {
 	// shortest link: >>1 - 3 chars
-	if src + 3 > len(b) || b[src+1] != '>' {
+	if src+3 > len(b) || b[src+1] != '>' {
 		return false
 	}
 
 	src += 2
 	idx := src
-	for ;; idx++ {
+	for ; ; idx++ {
 		if idx >= len(b) || b[idx] < '0' || b[idx] > '9' {
 			break
 		}
@@ -224,9 +224,9 @@ func processPostMessage(p *fullPostInfo, db *sql.DB) {
 			}
 		case '\n':
 			// bit fucked up way for doing this. TODO: do it in diferent way
-			for i := int(len(tagList)-1); i >= 0; i-- {
+			for i := int(len(tagList) - 1); i >= 0; i-- {
 				if tagList[i] == tagGreentext {
-					for j := int(len(tagList)-1); j >= i; j-- {
+					for j := int(len(tagList) - 1); j >= i; j-- {
 						esc = append(esc, tagMap[tagList[j]].end...)
 					}
 					tagList = tagList[:i]
@@ -246,7 +246,7 @@ func processPostMessage(p *fullPostInfo, db *sql.DB) {
 		last = src
 	}
 	w.Write(b[last:])
-	for i := int(len(tagList)-1); i >= 0; i-- {
+	for i := int(len(tagList) - 1); i >= 0; i-- {
 		w.Write(tagMap[tagList[i]].end)
 	}
 	p.FMessage = w.String()
@@ -281,7 +281,7 @@ func processThread(t *fullThreadInfo, db *sql.DB) {
 // also sets up backlinks
 func localValidatePost(p *fullPostInfo, post uint64, thread *uint64) {
 	var rpi int
-	var ok  bool
+	var ok bool
 	rpi, ok = p.fparent.postMap[post]
 	var rp *fullPostInfo
 	if rpi == 0 {

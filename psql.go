@@ -1,19 +1,17 @@
 package main
 
 import (
-	"fmt"
 	"database/sql"
+	"fmt"
 	_ "github.com/lib/pq"
 )
 
-
-func openSQL() (*sql.DB) {
+func openSQL() *sql.DB {
 	dbinfo := fmt.Sprintf("user=%s password=%s dbname=%s sslmode=disable", "postgres", "postgres", "chin")
 	db, err := sql.Open("postgres", dbinfo)
 	panicErr(err)
 	return db
 }
-
 
 func inputBoards(db *sql.DB, f *fullFrontData) {
 	rows, err := db.Query("SELECT name, description, info FROM boards")
@@ -51,7 +49,7 @@ func inputThreads(db *sql.DB, b *fullBoardInfo, board string) bool {
 			op.fparent = &b.Threads[i]
 			// expliclty fetch OP
 			err = db.QueryRow(fmt.Sprintf("SELECT id, name, trip, subject, email, date, message, file, original, thumb FROM %s.posts WHERE id=$1", board), b.Threads[i].Id).
-		                     Scan(&op.Id, &op.Name, &op.Trip, &op.Subject, &op.Email, &op.Date, &op.Message, &op.File, &op.Original, &op.Thumb)
+				Scan(&op.Id, &op.Name, &op.Trip, &op.Subject, &op.Email, &op.Date, &op.Message, &op.File, &op.Original, &op.Thumb)
 			if err == sql.ErrNoRows {
 				// thread without OP, it broke. TODO: remove from list
 			} else {
@@ -98,7 +96,7 @@ func inputPosts(db *sql.DB, t *fullThreadInfo, board string, thread uint64) bool
 	t.Op.parent = &t.threadInfo
 	t.Op.fparent = t
 	err = db.QueryRow(fmt.Sprintf("SELECT id, name, trip, subject, email, date, message, file, original, thumb FROM %s.posts WHERE id=$1", board), thread).
-	                 Scan(&t.Op.Id, &t.Op.Name, &t.Op.Trip, &t.Op.Subject, &t.Op.Email, &t.Op.Date, &t.Op.Message, &t.Op.File, &t.Op.Original, &t.Op.Thumb);
+		Scan(&t.Op.Id, &t.Op.Name, &t.Op.Trip, &t.Op.Subject, &t.Op.Email, &t.Op.Date, &t.Op.Message, &t.Op.File, &t.Op.Original, &t.Op.Thumb)
 	if err == sql.ErrNoRows {
 		return false
 	}

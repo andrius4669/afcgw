@@ -1,9 +1,9 @@
 package main
 
 import (
-	"text/template"
-	"net/url"
 	"fmt"
+	"net/url"
+	"text/template"
 	"time"
 )
 
@@ -147,7 +147,6 @@ func (p *postInfo) StrDate() string {
 func (p *postInfo) HasMessage() bool {
 	return p.Message != ""
 }
-
 
 type fullPostInfo struct {
 	postInfo

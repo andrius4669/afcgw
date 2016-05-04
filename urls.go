@@ -2,7 +2,7 @@ package main
 
 import "fmt"
 
-var staticThumbsUrls = map[string]string {
+var staticThumbsUrls = map[string]string{
 	"audio":   "/static/wubz.png",
 	"deleted": "/static/removed.jpg",
 	"spoiler": "/static/spoiler.jpg",

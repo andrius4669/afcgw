@@ -1,16 +1,14 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
+	"mime"
 	"os"
 	"os/exec"
-	"time"
-	"errors"
-	"github.com/gographics/imagick/imagick"
-	"database/sql"
-	"strings"
 	"path/filepath"
-	"mime"
+	"strings"
+	"time"
 )
 
 const (
@@ -30,18 +28,18 @@ const (
 )
 
 // extensions/mime types/aliases mapped to converters/aliases
-var thumbConvMap = map[string]string {
+var thumbConvMap = map[string]string{
 	">image":     "convert/jpg",
 	"image/gif":  ">>image",
 	"image/jpeg": ">>image",
 	"image/png":  ">>image",
 	"image/bmp":  ">>image",
-	"":           "",            // default
+	"":           "", // default
 }
 
 func findConverter(ext, mimetype string) (ret string) {
 	var ok bool
-	ret, ok = thumbConvMap["." + ext]
+	ret, ok = thumbConvMap["."+ext]
 	if !ok {
 		ret, ok = thumbConvMap[mimetype]
 		if !ok && mimetype != "" {
@@ -49,9 +47,9 @@ func findConverter(ext, mimetype string) (ret string) {
 			if i := strings.IndexByte(mimetype, '/'); i != -1 {
 				mimetype, msub = mimetype[:i], mimetype[i+1:]
 			}
-			ret, ok = thumbConvMap[mimetype + "/*"]
+			ret, ok = thumbConvMap[mimetype+"/*"]
 			if !ok && msub != "" {
-				ret, ok = thumbConvMap["*/" + msub]
+				ret, ok = thumbConvMap["*/"+msub]
 			}
 			if !ok {
 				ret, ok = thumbConvMap[""]
@@ -75,82 +73,8 @@ type thumbMethodType struct {
 }
 
 var thumbMethods = map[string]thumbMethodType{
-	"imagick":    { deftype: "jpg", f: makeIMagickThumb },
-	"convert":    { deftype: "jpg", f: makeConvertThumb },
-	"gm-convert": { deftype: "jpg", f: makeGmConvertThumb },
-}
-
-func makeIMagickThumb(source, destdir, dest, destext, bgcolor string) error {
-	var err error
-
-	mw := imagick.NewMagickWand()
-	defer mw.Destroy()
-
-	mw.SetResourceLimit(imagick.RESOURCE_MEMORY, 50)
-
-	err = mw.ReadImage(source + "[0]")
-	if err != nil {
-		return err
-	}
-
-	// calculate needed width and height. keep aspect ratio
-	w, h := mw.GetImageWidth(), mw.GetImageHeight()
-	if w < 1 || h < 1 {
-		return errors.New("this image a shit")
-	}
-	var needW, needH uint
-	ratio := float64(w)/float64(h)
-	if ratio > 1 {
-		needW = thumbMaxW
-		needH = uint((thumbMaxH / ratio) + 0.5) // round to near
-		if needH < 1 {
-			needH = 1
-		}
-	} else {
-		needH = thumbMaxH
-		needW = uint((thumbMaxW * ratio) + 0.5) // round to near
-		if needW < 1 {
-			needW = 1
-		}
-	}
-
-	err = mw.ThumbnailImage(needW, needH)
-	if err != nil {
-		return err
-	}
-
-	if bgcolor != "" {
-		// flatten image to make transparent shit look allright
-		pw := imagick.NewPixelWand()
-		pw.SetColor(bgcolor)
-		err = mw.SetImageBackgroundColor(pw)
-		pw.Destroy()
-		if err != nil {
-			return err
-		}
-		nmw := mw.MergeImageLayers(imagick.IMAGE_LAYER_FLATTEN)
-		if nmw == nil {
-			return errors.New("MergeImageLayers failed")
-		}
-		mw.Destroy()
-		mw = nmw
-	}
-
-	err = mw.SetImageCompressionQuality(90)
-	if err != nil {
-		return err
-	}
-
-	tmpdest := destdir + "/" + ".tmp." + dest + "." + destext
-	fnldest := destdir + "/" + dest + "." + destext
-	err = mw.WriteImage(tmpdest)
-	if err != nil {
-		return err
-	}
-
-	os.Rename(tmpdest, fnldest)
-
-	return nil
+	"convert":    {deftype: "jpg", f: makeConvertThumb},
+	"gm-convert": {deftype: "jpg", f: makeGmConvertThumb},
 }
 
 func runConvertCmd(gm bool, source, destdir, dest, destext, bgcolor string) error {
@@ -167,7 +91,15 @@ func runConvertCmd(gm bool, source, destdir, dest, destext, bgcolor string) erro
 		args = append(args, "convert")
 	}
 
-	args = append(args, source + "[0]", "-thumbnail", fmt.Sprintf("%dx%d", thumbMaxW, thumbMaxH))
+	var convsrc string
+	if i := strings.LastIndexByte(source, '.'); i >= 0 {
+		convsrc = source[i+1:] + ":" + source + "[0]"
+	} else {
+		// shouldn't happen
+		convsrc = source + "[0]"
+	}
+
+	args = append(args, convsrc, "-thumbnail", fmt.Sprintf("%dx%d", thumbMaxW, thumbMaxH))
 	if bgcolor != "" {
 		args = append(args, "-background", bgcolor, "-flatten")
 	}
@@ -226,14 +158,6 @@ func makeThumb(fullname, fname, board, ext, mimetype string, isop bool) (string,
 	return fname + "." + format, nil
 }
 
-func initImageMagick() {
-	imagick.Initialize()
-}
-
-func killImageMagick() {
-	imagick.Terminate()
-}
-
 func makeThumbs(method, board, file string) {
 	var err error
 
@@ -257,7 +181,7 @@ func makeThumbs(method, board, file string) {
 	panicErr(err)
 
 	type tpost struct {
-		id, thread uint64
+		id, thread  uint64
 		file, thumb string
 	}
 
@@ -296,7 +220,7 @@ func makeThumbs(method, board, file string) {
 		ntname, err = makeThumb(pathSrcFile(board, modthumbs[i].file), modthumbs[i].file, board, ext, mt, modthumbs[i].id == modthumbs[i].thread)
 		ed_time := time.Now().UnixNano()
 
-		spent := uint64(ed_time-st_time)
+		spent := uint64(ed_time - st_time)
 		if err == nil {
 			fmt.Printf(" done: %.3fms\n", float64(spent)/1000000.0)
 		} else {

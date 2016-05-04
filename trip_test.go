@@ -9,11 +9,11 @@ func TestMakeTrip(t *testing.T) {
 		trip string
 	}
 	var tests = [...]tripset{
-		{ src: "",                  name: "",     trip: "" },
-		{ src: "test",              name: "test", trip: "" },
-		{ src: "#:^)",              name: "",     trip: "!qbhz/q8HqQ" },
-		{ src: "asda#a6516a51aaaa", name: "asda", trip: "!Om/F889ywA" },
-		{ src: "bbb#猫に哲学",       name: "bbb",  trip: "!tcVgirItgw" },
+		{src: "", name: "", trip: ""},
+		{src: "test", name: "test", trip: ""},
+		{src: "#:^)", name: "", trip: "!qbhz/q8HqQ"},
+		{src: "asda#a6516a51aaaa", name: "asda", trip: "!Om/F889ywA"},
+		{src: "bbb#猫に哲学", name: "bbb", trip: "!tcVgirItgw"},
 	}
 	for i := range tests {
 		name, trip := MakeTrip(tests[i].src)

@@ -1,33 +1,33 @@
 package main
 
 import (
-	"fmt"
-	"net/http"
-	"sync"
 	"database/sql"
-	"mime"
-	"path/filepath"
-	"os"
-	"time"
+	"fmt"
 	"io"
-	"strconv"
+	"mime"
+	"net/http"
+	"os"
+	"path/filepath"
 	"regexp"
+	"strconv"
+	"sync"
+	"time"
 )
 
 const (
-	maxImageSize =  8<<20
-	maxMusicSize = 50<<20 // :^)
+	maxImageSize = 8 << 20
+	maxMusicSize = 50 << 20 // :^)
 )
 
 // nice place to also include file sizes
 var allowedTypes = map[string]int64{
-	"image/gif":      maxImageSize,
-	"image/jpeg":     maxImageSize,
-	"image/png":      maxImageSize,
-	"image/bmp":      maxImageSize,
-	"audio/mpeg":     maxMusicSize,
-	"audio/ogg":      maxMusicSize,
-	"audio/flac":     maxMusicSize,
+	"image/gif":  maxImageSize,
+	"image/jpeg": maxImageSize,
+	"image/png":  maxImageSize,
+	"image/bmp":  maxImageSize,
+	"audio/mpeg": maxMusicSize,
+	"audio/ogg":  maxMusicSize,
+	"audio/flac": maxMusicSize,
 }
 
 // add our own mime stuff since golang's parser erroreusly overwrites image/bmp with image/x-ms-bmp
@@ -40,6 +40,7 @@ func initMime() {
 // timestamps returned by this are guaranteed to be unique
 var lastTimeMutex sync.Mutex
 var lastTime int64 = 0
+
 func uniqueTimestamp() int64 {
 	lastTimeMutex.Lock()
 	defer lastTimeMutex.Unlock()
@@ -50,7 +51,7 @@ func uniqueTimestamp() int64 {
 		lastTime = unixnow
 		return unixnow
 	} else {
-		lastTime ++
+		lastTime++
 		return lastTime
 	}
 }
@@ -119,9 +120,9 @@ func validBoardName(name string) bool {
 		return false
 	}
 	switch name {
-		case "static":
-		case "mod":
-			return false
+	case "static":
+	case "mod":
+		return false
 	}
 	return true
 }
@@ -360,7 +361,7 @@ func acceptPost(w http.ResponseWriter, r *http.Request, p *wPostInfo, board stri
 		}
 		fname := strconv.FormatInt(uniqueTimestamp(), 10) + ext
 		fullname := pathSrcFile(board, fname)
-		tmpname := pathSrcFile(board, ".tmp." + fname)
+		tmpname := pathSrcFile(board, ".tmp."+fname)
 		nf, err := os.OpenFile(tmpname, os.O_WRONLY|os.O_CREATE, 0666)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("500 internal server error: %s", err), 500)
@@ -389,7 +390,7 @@ func postNewThread(w http.ResponseWriter, r *http.Request, board string) {
 	db := openSQL()
 	defer db.Close()
 
-	var bname      string
+	var bname string
 	var maxthreads sql.NullInt64
 	err := db.QueryRow("SELECT name, maxthreads FROM boards WHERE name=$1", board).Scan(&bname, &maxthreads)
 	if err == sql.ErrNoRows {
@@ -406,7 +407,7 @@ func postNewThread(w http.ResponseWriter, r *http.Request, board string) {
 
 	var lastInsertId uint64
 	err = db.QueryRow(fmt.Sprintf("INSERT INTO %s.posts (name, trip, subject, email, date, message, file, original, thumb) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id;", board),
-                      p.Name, p.Trip, p.Subject, p.Email, nowtime, p.Message, p.File, p.Original, p.Thumb).Scan(&lastInsertId)
+		p.Name, p.Trip, p.Subject, p.Email, nowtime, p.Message, p.File, p.Original, p.Thumb).Scan(&lastInsertId)
 	panicErr(err)
 
 	stmt, err := db.Prepare(fmt.Sprintf("INSERT INTO %s.threads (id, bump, bumpnum) VALUES ($1, $2, $3)", board))
@@ -421,10 +422,10 @@ func postNewThread(w http.ResponseWriter, r *http.Request, board string) {
 		//panicErr(err)
 		delq := `
 			DELETE FROM %s.threads
-			WHERE id IN (
+			WHERE id = any (array(
 				SELECT id FROM %s.threads
 				ORDER BY bump DESC
-				OFFSET $1)
+				OFFSET $1))
 			RETURNING id`
 		rows, err := db.Query(fmt.Sprintf(delq, board, board), uint64(maxthreads.Int64))
 		panicErr(err)
@@ -480,7 +481,7 @@ func postNewPost(w http.ResponseWriter, r *http.Request, board string, thread ui
 
 	var lastInsertId uint64
 	err = db.QueryRow(fmt.Sprintf("INSERT INTO %s.posts (thread, name, trip, subject, email, date, message, file, original, thumb) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id;", board),
-                      thread, p.Name, p.Trip, p.Subject, p.Email, nowtime, p.Message, p.File, p.Original, p.Thumb).Scan(&lastInsertId)
+		thread, p.Name, p.Trip, p.Subject, p.Email, nowtime, p.Message, p.File, p.Original, p.Thumb).Scan(&lastInsertId)
 	panicErr(err)
 
 	// TODO: check for sage
@@ -491,8 +492,6 @@ func postNewPost(w http.ResponseWriter, r *http.Request, board string, thread ui
 	var pr = postResult{Board: board, Thread: thread, Post: lastInsertId}
 	execTemplate(w, "posted", pr)
 }
-
-
 
 func removePost(w http.ResponseWriter, r *http.Request, pr *postResult, board string, post uint64) bool {
 	db := openSQL()
@@ -510,8 +509,8 @@ func removePost(w http.ResponseWriter, r *http.Request, pr *postResult, board st
 	pr.Post = post
 
 	var thread sql.NullInt64
-	var fname  sql.NullString
-	var tname  sql.NullString
+	var fname sql.NullString
+	var tname sql.NullString
 	err = db.QueryRow(fmt.Sprintf("DELETE FROM %s.posts WHERE id=$1 RETURNING thread, file, thumb", board), post).Scan(&thread, &fname, &tname)
 	if err == sql.ErrNoRows {
 		return true // already deleted

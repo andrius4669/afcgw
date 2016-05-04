@@ -39,5 +39,5 @@ func pathStaticFile(board, file string) string {
 }
 func pathStaticSafeFile(board, file string) string {
 	// return file safelly rooted in static dir
-	return pathStaticDir(board) + path.Clean("/" + file)
+	return pathStaticDir(board) + path.Clean("/"+file)
 }

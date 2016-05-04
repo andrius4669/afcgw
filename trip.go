@@ -1,10 +1,10 @@
 package main
 
 import (
-	   "regexp"
+	ud "./unixdes"
 	ej "golang.org/x/text/encoding/japanese"
 	tr "golang.org/x/text/transform"
-	ud "./unixdes"
+	"regexp"
 )
 
 func encodeSJIS(src []byte) []byte {
@@ -13,7 +13,7 @@ func encodeSJIS(src []byte) []byte {
 	var ndst int
 	for {
 		enc.Reset()
-		var err  error
+		var err error
 		ndst, _, err = enc.Transform(dst, src, true)
 		if err == tr.ErrShortDst {
 			newlen := 2 * len(dst)
@@ -28,8 +28,6 @@ func encodeSJIS(src []byte) []byte {
 	return dst[:ndst]
 }
 
-
-
 // the most fucking basic tr-like functionality, because fuck go std shit
 func myTr(buf []byte, old, rep string) {
 	buflen, oldlen, replen := len(buf), len(old), len(rep)
@@ -39,7 +37,7 @@ func myTr(buf []byte, old, rep string) {
 	for i := 0; i < buflen; i++ {
 		for j := 0; j < oldlen; j++ {
 			if buf[i] == old[j] {
-				buf[i] = rep[j % replen]
+				buf[i] = rep[j%replen]
 				break
 			}
 		}

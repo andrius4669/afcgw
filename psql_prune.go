@@ -1,9 +1,9 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"os"
-	"database/sql"
 )
 
 func pruneFiles(board, fname, tname string) {

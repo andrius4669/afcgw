@@ -10,7 +10,6 @@ type fullFrontData struct {
 	Boards []boardInfo
 }
 
-
 func renderFront(w http.ResponseWriter, r *http.Request) {
 	db := openSQL()
 	defer db.Close()

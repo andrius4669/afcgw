@@ -3,10 +3,10 @@ package main
 import (
 	"fmt"
 	"net/http"
-	"strings"
 	"os"
-	"time"
 	"strconv"
+	"strings"
+	"time"
 )
 
 func panicErr(err error) {
@@ -49,7 +49,7 @@ func (HandlerType) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		idx := strings.IndexByte(board, '/')
 		if idx == -1 {
-			http.Redirect(w, r, "/" + board + "/", http.StatusFound)
+			http.Redirect(w, r, "/"+board+"/", http.StatusFound)
 			return
 		}
 
@@ -58,9 +58,9 @@ func (HandlerType) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		// some special non-board names
 		switch board {
-			case "static":
-				serveFile(w, r, pathStaticSafeFile("", restype))
-				return
+		case "static":
+			serveFile(w, r, pathStaticSafeFile("", restype))
+			return
 		}
 
 		var subinfo string
@@ -69,69 +69,69 @@ func (HandlerType) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 
 		switch restype {
-			case "":
-				renderBoard(w, r, board, false)
-			case "thread":
-				if subinfo == "" || subinfo == "/" {
-					http.Redirect(w, r, "/" + board + "/", http.StatusFound)
-					return
-				}
-				subinfo = subinfo[1:]
-				if i := strings.IndexByte(subinfo, '/'); i != -1 {
-					subinfo = subinfo[:i] // ignore / and anything after it
-				}
-				n, err := strconv.ParseUint(subinfo, 10, 64)
-				if err != nil {
-					http.NotFound(w, r)
-					return
-				}
-				renderThread(w, r, board, n, false)
-			case "src":
-				if subinfo == "" || subinfo == "/" {
-					http.Redirect(w, r, "/" + board + "/", http.StatusFound)
-					return
-				}
-				subinfo = subinfo[1:]
-				if i := strings.IndexByte(subinfo, '/'); i != -1 {
-					subinfo = subinfo[:i]
-				}
-				if subinfo == "." || subinfo == ".." {
-					http.NotFound(w, r)
-					return
-				}
-				serveFile(w, r, pathSrcFile(board, subinfo))
-			case "thumb":
-				if subinfo == "" || subinfo == "/" {
-					http.Redirect(w, r, "/" + board + "/", http.StatusFound)
-					return
-				}
-				subinfo = subinfo[1:]
-				if i := strings.IndexByte(subinfo, '/'); i != -1 || subinfo == "." || subinfo == ".." {
-					http.NotFound(w, r)
-					return
-				}
-				serveFile(w, r, pathThumbFile(board, subinfo))
-			case "mod":
-				if subinfo == "" {
-					http.Redirect(w, r, "/" + board + "/mod/", http.StatusFound)
-					return
-				}
-				if subinfo == "/" {
-					renderBoard(w, r, board, true)
-					return
-				}
-				subinfo = subinfo[1:]
-				if i := strings.IndexByte(subinfo, '/'); i != -1 {
-					subinfo = subinfo[:i] // ignore / and anything after it
-				}
-				n, err := strconv.ParseUint(subinfo, 10, 64)
-				if err != nil {
-					http.NotFound(w, r)
-					return
-				}
-				renderThread(w, r, board, n, true)
-			default:
+		case "":
+			renderBoard(w, r, board, false)
+		case "thread":
+			if subinfo == "" || subinfo == "/" {
+				http.Redirect(w, r, "/"+board+"/", http.StatusFound)
+				return
+			}
+			subinfo = subinfo[1:]
+			if i := strings.IndexByte(subinfo, '/'); i != -1 {
+				subinfo = subinfo[:i] // ignore / and anything after it
+			}
+			n, err := strconv.ParseUint(subinfo, 10, 64)
+			if err != nil {
 				http.NotFound(w, r)
+				return
+			}
+			renderThread(w, r, board, n, false)
+		case "src":
+			if subinfo == "" || subinfo == "/" {
+				http.Redirect(w, r, "/"+board+"/", http.StatusFound)
+				return
+			}
+			subinfo = subinfo[1:]
+			if i := strings.IndexByte(subinfo, '/'); i != -1 {
+				subinfo = subinfo[:i]
+			}
+			if subinfo == "." || subinfo == ".." {
+				http.NotFound(w, r)
+				return
+			}
+			serveFile(w, r, pathSrcFile(board, subinfo))
+		case "thumb":
+			if subinfo == "" || subinfo == "/" {
+				http.Redirect(w, r, "/"+board+"/", http.StatusFound)
+				return
+			}
+			subinfo = subinfo[1:]
+			if i := strings.IndexByte(subinfo, '/'); i != -1 || subinfo == "." || subinfo == ".." {
+				http.NotFound(w, r)
+				return
+			}
+			serveFile(w, r, pathThumbFile(board, subinfo))
+		case "mod":
+			if subinfo == "" {
+				http.Redirect(w, r, "/"+board+"/mod/", http.StatusFound)
+				return
+			}
+			if subinfo == "/" {
+				renderBoard(w, r, board, true)
+				return
+			}
+			subinfo = subinfo[1:]
+			if i := strings.IndexByte(subinfo, '/'); i != -1 {
+				subinfo = subinfo[:i] // ignore / and anything after it
+			}
+			n, err := strconv.ParseUint(subinfo, 10, 64)
+			if err != nil {
+				http.NotFound(w, r)
+				return
+			}
+			renderThread(w, r, board, n, true)
+		default:
+			http.NotFound(w, r)
 		}
 	} else if r.Method == "POST" {
 		board := r.URL.Path[1:]
@@ -164,7 +164,7 @@ func (HandlerType) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			if i := strings.IndexByte(tfunc, '/'); i != -1 {
 				tfunc, ttfunc = tfunc[:i], tfunc[i:]
 			}
-			if !(ttfunc == "/post" || ttfunc == "/deleted")  {
+			if !(ttfunc == "/post" || ttfunc == "/deleted") {
 				http.NotFound(w, r)
 				return
 			}
@@ -193,9 +193,6 @@ func main() {
 	if len(os.Args) < 2 {
 		loadTemplates()
 
-		initImageMagick()
-		defer killImageMagick()
-
 		http.ListenAndServe(":1337", &HandlerType{})
 	} else {
 		cmd := os.Args[1]
@@ -203,21 +200,21 @@ func main() {
 		if i := strings.IndexByte(cmd, '/'); i != -1 {
 			cmd, method = cmd[:i], cmd[i+1:]
 		}
-		switch(cmd) {
-			case "thumb":
-				var board string
-				if len(os.Args) > 2 {
-					board = os.Args[2]
-				}
-				var file string
-				if len(os.Args) > 3 {
-					board = os.Args[3]
-				}
-				makeThumbs(method, board, file)
-			case "initdb":
-				initDbCmd()
-			default:
-				fmt.Printf("unknown command: %s\n", cmd)
+		switch cmd {
+		case "thumb":
+			var board string
+			if len(os.Args) > 2 {
+				board = os.Args[2]
+			}
+			var file string
+			if len(os.Args) > 3 {
+				board = os.Args[3]
+			}
+			makeThumbs(method, board, file)
+		case "initdb":
+			initDbCmd()
+		default:
+			fmt.Printf("unknown command: %s\n", cmd)
 		}
 		return
 	}
